@@ -7,4 +7,4 @@ export default class MyApp extends App {
   override async onInit() {
     this.log('MyApp has been initialized');
   }
-};
+}

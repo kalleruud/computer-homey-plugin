@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/app/schema.json",
+  "$schema": "../schemas/app.schema.json",
   "id": "no.kallerud.computer",
   "version": "1.0.0",
   "compatibility": ">=5.0.0",
