@@ -1,7 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": ["app.ts"],
-  "project": ["**/*.{ts,js}"],
-  "treatConfigHintsAsErrors": true,
-  "ignoreDependencies": ["homey"]
+  "entry": ["app.mts"],
+  "project": ["**/*.{mts,ts,mjs,js}"],
+  "treatConfigHintsAsErrors": true
 }
