@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - changelogs/**
+      - .homeychangelog.json
 
 jobs:
   main:
@@ -21,9 +21,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      - name: Generate Homey changelog
-        run: node scripts/generate-homey-changelog.mjs
 
       - name: Publish Homey App
         id: publish
