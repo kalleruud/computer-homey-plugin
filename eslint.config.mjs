@@ -7,6 +7,7 @@ export default [
   {
     ignores: ['.homeybuild', 'node_modules', '.gitignore'],
   },
+  ...tseslint.configs.recommended,
   {
     files: ['**/*.{js,cjs}'],
     ...js.configs.recommended,
@@ -20,7 +21,6 @@ export default [
     },
     rules: {
       ...homeyApp.configs.recommended.rules,
-      semi: ['error', 'always'],
     },
   },
   {
@@ -38,10 +38,6 @@ export default [
       ...homeyApp.configs.recommended.rules,
     },
   },
-  ...tseslint.configs.recommended.map(config => ({
-    ...config,
-    files: ['**/*.{ts,mts,cts}'],
-  })),
   {
     files: ['**/*.{ts,mts,cts}'],
     languageOptions: {
