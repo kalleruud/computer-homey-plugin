@@ -1,0 +1,2 @@
+- Run `bun prepare` to generate the `app.json` file.
+- Always run `bun fix && bun check` to fix and check for errors. All errors must be fixed before committing.
