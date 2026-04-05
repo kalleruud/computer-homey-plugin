@@ -11,46 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
 
       - name: Extract version from PR branch
         id: pr_version
         env:
           PR_BRANCH: ${{ github.head_ref }}
-        run: |
-          if [[ "$PR_BRANCH" =~ ^release/([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "PR branch must match release/x.y.z" >&2
-          exit 1
+        run: bun scripts/get-release-version.ts
 
       - name: Verify app versions match PR branch
         env:
           EXPECTED_VERSION: ${{ steps.pr_version.outputs.version }}
-        run: |
-          while IFS=':' read -r FILE_NAME FILE_PATH; do
-            FILE_VERSION="$(node -p "require('./${FILE_PATH}').version")"
+        run: bun scripts/check-homey-version-files.ts
 
-            if [[ "$FILE_VERSION" != "$EXPECTED_VERSION" ]]; then
-              echo "PR branch version $EXPECTED_VERSION does not match ${FILE_NAME} version $FILE_VERSION" >&2
-              exit 1
-            fi
-          done <<'EOF'
-          package.json:package.json
-          app.json:app.json
-          .homeycompose/app.json:.homeycompose/app.json
-          EOF
-
-      - name: Verify changelog file exists
+      - name: Verify changelog entry exists
         env:
           CHANGELOG_VERSION: ${{ steps.pr_version.outputs.version }}
-        run: |
-          CHANGELOG_FILE="changelogs/v${CHANGELOG_VERSION}.md"
-
-          if [[ -f "$CHANGELOG_FILE" ]]; then
-            exit 0
-          fi
-
-          echo "Missing changelog file: $CHANGELOG_FILE" >&2
-          exit 1
+        run: bun scripts/check-homey-changelog.ts
