@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - main
+      - release/*
     types:
       - opened
       - synchronize
@@ -61,6 +62,11 @@ jobs:
     needs: metadata
     steps:
       - uses: actions/checkout@v4
-      - uses: athombv/github-action-homey-app-validate@master
-        with:
-          level: verified
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate Homey App
+        run: bunx homey app validate --level verified
