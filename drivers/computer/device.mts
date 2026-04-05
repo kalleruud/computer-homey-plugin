@@ -17,6 +17,9 @@ const STARTUP_REFRESH_DELAY_MS = 10000;
 const SUDO_PROMPT = '[sudo] password:';
 
 type TargetOs = 'windows' | 'linux' | 'macos';
+type DeviceSettingsEvent = Parameters<typeof Homey.Device.prototype.onSettings>[0];
+type DeviceSettings = DeviceSettingsEvent['newSettings'];
+type DeviceSettingValue = DeviceSettings[string];
 
 type ComputerSettings = {
   ipAddress: string;
@@ -49,11 +52,7 @@ export default class ComputerDevice extends Homey.Device {
 
   override async onSettings({
     changedKeys,
-  }: {
-    oldSettings: Record<string, boolean | string | number | null | undefined>;
-    newSettings: Record<string, boolean | string | number | null | undefined>;
-    changedKeys: string[];
-  }) {
+  }: Parameters<typeof Homey.Device.prototype.onSettings>[0]) {
     this.log('Computer settings changed', changedKeys);
     this.startPolling();
     await this.pollOnlineStatus();
@@ -213,10 +212,7 @@ export default class ComputerDevice extends Homey.Device {
   }
 
   private getTypedSettings(): ComputerSettings {
-    const settings = this.getSettings() as Record<
-      string,
-      boolean | string | number | null | undefined
-    >;
+    const settings = this.getSettings() as DeviceSettings;
 
     return {
       ipAddress: this.getTrimmedString(settings.ip_address),
@@ -235,24 +231,17 @@ export default class ComputerDevice extends Homey.Device {
     };
   }
 
-  private getTrimmedString(
-    value: boolean | string | number | null | undefined
-  ) {
+  private getTrimmedString(value: DeviceSettingValue) {
     return typeof value === 'string' ? value.trim() : '';
   }
 
-  private getNumber(
-    value: boolean | string | number | null | undefined,
-    fallback: number
-  ) {
+  private getNumber(value: DeviceSettingValue, fallback: number) {
     return typeof value === 'number' && Number.isFinite(value)
       ? value
       : fallback;
   }
 
-  private getTargetOs(
-    value: boolean | string | number | null | undefined
-  ): TargetOs {
+  private getTargetOs(value: DeviceSettingValue): TargetOs {
     if (value === 'windows' || value === 'linux' || value === 'macos') {
       return value;
     }
