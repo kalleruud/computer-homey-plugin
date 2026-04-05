@@ -1,5 +1,5 @@
 ---
-title: Homey
+title: homey
 description: Homey is a smart home platform that allows you to control your home automation devices.
 ---
 

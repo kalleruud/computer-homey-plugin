@@ -46,8 +46,6 @@ export default class ComputerDevice extends Homey.Device {
   }
 
   override async onSettings({
-    oldSettings: _oldSettings,
-    newSettings: _newSettings,
     changedKeys,
   }: {
     oldSettings: Record<string, boolean | string | number | null | undefined>;
@@ -149,7 +147,10 @@ export default class ComputerDevice extends Homey.Device {
 
       await this.unsetWarning();
 
-      const isOnline = await this.probeTcpPort(settings.ipAddress, settings.sshPort);
+      const isOnline = await this.probeTcpPort(
+        settings.ipAddress,
+        settings.sshPort
+      );
       await this.syncOnOffState(isOnline);
 
       return isOnline;
@@ -176,7 +177,10 @@ export default class ComputerDevice extends Homey.Device {
     return {
       ipAddress: this.getTrimmedString(settings.ip_address),
       macAddress: this.getTrimmedString(settings.mac_address),
-      pollIntervalSeconds: this.getNumber(settings.poll_interval, DEFAULT_POLL_INTERVAL_SECONDS),
+      pollIntervalSeconds: this.getNumber(
+        settings.poll_interval,
+        DEFAULT_POLL_INTERVAL_SECONDS
+      ),
       targetOs: this.getTargetOs(settings.target_os),
       sshUsername: this.getTrimmedString(settings.ssh_username),
       sshPassword: this.getTrimmedString(settings.ssh_password),
@@ -187,7 +191,9 @@ export default class ComputerDevice extends Homey.Device {
     };
   }
 
-  private getTrimmedString(value: boolean | string | number | null | undefined) {
+  private getTrimmedString(
+    value: boolean | string | number | null | undefined
+  ) {
     return typeof value === 'string' ? value.trim() : '';
   }
 
@@ -195,10 +201,14 @@ export default class ComputerDevice extends Homey.Device {
     value: boolean | string | number | null | undefined,
     fallback: number
   ) {
-    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : fallback;
   }
 
-  private getTargetOs(value: boolean | string | number | null | undefined): TargetOs {
+  private getTargetOs(
+    value: boolean | string | number | null | undefined
+  ): TargetOs {
     if (value === 'windows' || value === 'linux' || value === 'macos') {
       return value;
     }
@@ -373,7 +383,8 @@ export default class ComputerDevice extends Homey.Device {
         }
 
         passwordSent = true;
-        stream.write(`${settings.sshPassword}\n`);
+        stream.write(`${settings.sshPassword}
+`);
       };
 
       client.once('error', finish);

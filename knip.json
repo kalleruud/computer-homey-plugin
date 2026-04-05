@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": ["app.mts"],
+  "entry": ["app.mts", "drivers/**/*.mts"],
   "project": ["**/*.{mts,ts,mjs,js}"],
   "treatConfigHintsAsErrors": true
 }
