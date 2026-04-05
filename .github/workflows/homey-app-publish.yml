@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
         run: npm install --package-lock=false --legacy-peer-deps --ignore-scripts
@@ -28,10 +28,14 @@ jobs:
         run: npx homey app build
 
       - name: Publish Homey App
-        uses: athombv/github-action-homey-app-publish@master
         id: publish
-        with:
-          personal_access_token: ${{ secrets.HOMEY_PAT }}
+        env:
+          HOMEY_HEADLESS: '1'
+          HOMEY_PAT: ${{ secrets.HOMEY_PAT }}
+        run: |
+          npx homey app publish
+          APP_ID="$(node -p "require('./app.json').id")"
+          echo "url=https://tools.developer.homey.app/apps/app/${APP_ID}" >> "$GITHUB_OUTPUT"
 
       - name: URL
         run: |
