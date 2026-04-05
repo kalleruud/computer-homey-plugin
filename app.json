@@ -13,6 +13,7 @@
   "description": {
     "en": "Lets you monitor and turn on/off your computer."
   },
+  "brandColor": "#2d3748",
   "category": [
     "appliances"
   ],
@@ -25,5 +26,194 @@
   "author": {
     "email": "ole@kallerud.no",
     "name": "Ole Kallerud"
-  }
+  },
+  "flow": {
+    "actions": [
+      {
+        "id": "start_computer",
+        "title": {
+          "en": "Start computer"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=computer"
+          }
+        ]
+      },
+      {
+        "id": "shutdown_computer",
+        "title": {
+          "en": "Shut down computer"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=computer"
+          }
+        ]
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "Computer"
+      },
+      "class": "other",
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "capabilities": [
+        "onoff"
+      ],
+      "icon": "/drivers/computer/assets/icon.svg",
+      "images": {
+        "small": "/drivers/computer/assets/small.png",
+        "large": "/drivers/computer/assets/large.png",
+        "xlarge": "/drivers/computer/assets/xlarge.png"
+      },
+      "pair": [
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ],
+      "id": "computer",
+      "settings": [
+        {
+          "id": "ip_address",
+          "type": "text",
+          "label": {
+            "en": "Computer IP address"
+          },
+          "hint": {
+            "en": "The IPv4 address Homey should probe and use for SSH."
+          },
+          "value": "",
+          "highlight": true
+        },
+        {
+          "id": "mac_address",
+          "type": "text",
+          "label": {
+            "en": "Computer MAC address"
+          },
+          "hint": {
+            "en": "The MAC address used for Wake-on-LAN, for example AA:BB:CC:DD:EE:FF."
+          },
+          "value": "",
+          "highlight": true
+        },
+        {
+          "id": "poll_interval",
+          "type": "number",
+          "label": {
+            "en": "Poll interval"
+          },
+          "hint": {
+            "en": "How often Homey should probe the computer status."
+          },
+          "value": 60,
+          "units": {
+            "en": "sec"
+          },
+          "min": 10,
+          "max": 3600,
+          "step": 5,
+          "highlight": true
+        },
+        {
+          "id": "target_os",
+          "type": "dropdown",
+          "label": {
+            "en": "Computer operating system"
+          },
+          "hint": {
+            "en": "Used to pick the default SSH shutdown command."
+          },
+          "value": "linux",
+          "values": [
+            {
+              "id": "windows",
+              "label": {
+                "en": "Windows"
+              }
+            },
+            {
+              "id": "linux",
+              "label": {
+                "en": "Linux"
+              }
+            },
+            {
+              "id": "macos",
+              "label": {
+                "en": "macOS"
+              }
+            }
+          ]
+        },
+        {
+          "id": "ssh_username",
+          "type": "text",
+          "label": {
+            "en": "SSH username"
+          },
+          "hint": {
+            "en": "The user Homey should use when running the shutdown command."
+          },
+          "value": ""
+        },
+        {
+          "id": "ssh_password",
+          "type": "password",
+          "label": {
+            "en": "SSH password"
+          },
+          "hint": {
+            "en": "For Linux and macOS, this should usually be the same password needed for sudo."
+          },
+          "value": ""
+        },
+        {
+          "id": "ssh_port",
+          "type": "number",
+          "label": {
+            "en": "SSH port"
+          },
+          "hint": {
+            "en": "The TCP port Homey should probe and use for SSH."
+          },
+          "value": 22,
+          "min": 1,
+          "max": 65535,
+          "step": 1
+        },
+        {
+          "id": "wol_broadcast_address",
+          "type": "text",
+          "label": {
+            "en": "Wake-on-LAN broadcast address"
+          },
+          "hint": {
+            "en": "Optional. Leave empty to use 255.255.255.255."
+          },
+          "value": ""
+        }
+      ]
+    }
+  ]
 }

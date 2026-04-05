@@ -1,0 +1,16 @@
+{
+  "actions": [
+    {
+      "id": "start_computer",
+      "title": {
+        "en": "Start computer"
+      }
+    },
+    {
+      "id": "shutdown_computer",
+      "title": {
+        "en": "Shut down computer"
+      }
+    }
+  ]
+}

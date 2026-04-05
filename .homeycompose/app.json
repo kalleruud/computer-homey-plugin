@@ -11,6 +11,7 @@
   "description": {
     "en": "Lets you monitor and turn on/off your computer."
   },
+  "brandColor": "#2d3748",
   "category": ["appliances"],
   "permissions": [],
   "images": {
