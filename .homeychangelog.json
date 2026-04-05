@@ -1,0 +1,5 @@
+{
+  "1.0.0": {
+    "en": "First release of Computer for Homey with Wake-on-LAN startup, online monitoring, SSH shutdown, Flow actions, and per-computer settings."
+  }
+}
