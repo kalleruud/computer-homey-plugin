@@ -1,5 +1,5 @@
 {
   "1.0.0": {
-    "en": "This is the first release of Computer for Homey. You can wake, monitor, and shut down your computers from Homey, and use flows to automate those actions. The app supports multiple computers, each with its own network and SSH settings.\n- Added Wake-on-LAN startup from Homey.\n- Added online monitoring for configured computers.\n- Added SSH-based shutdown support.\n- Added Flow actions to start and shut down a computer.\n- Added support for multiple computers with separate settings.\n- Added OS selection for Windows, Linux, and macOS.\n- Added configurable polling, SSH port, and broadcast address settings."
+    "en": "First release of Computer for Homey with Wake-on-LAN startup, online monitoring, SSH shutdown, Flow actions, and per-computer settings."
   }
 }

@@ -3,5 +3,4 @@
 
 - Store release notes in `.homeychangelog.json`.
 - Each version must have a single-line entry keyed by `X.Y.Z`.
-- Keep changelog text concise and user-visible.
-- Prefer one paragraph followed by short bullet-style lines inside the string when needed.
+- Keep changelog text concise, user-visible, and limited to a single sentence.
