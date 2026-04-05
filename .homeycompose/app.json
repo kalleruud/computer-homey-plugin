@@ -18,9 +18,9 @@
   },
   "permissions": [],
   "images": {
-    "small": "/assets/images/power_button@0.25x.jpg",
-    "large": "/assets/images/power_button@0.5x.jpg",
-    "xlarge": "/assets/images/power_button.jpg"
+    "small": "/assets/images/power_button@250px.jpg",
+    "large": "/assets/images/power_button@500px.jpg",
+    "xlarge": "/assets/images/power_button@1000px.jpg"
   },
   "support": "mailto:ole@kallerud.no",
   "author": {
