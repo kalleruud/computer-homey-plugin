@@ -1,4 +1,5 @@
 name: Publish Homey App
+
 on:
   workflow_dispatch:
   push:
@@ -12,13 +13,24 @@ jobs:
     name: Publish Homey App
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Publish Homey App
-        uses: athombv/github-action-homey-app-publish@master
         id: publish
-        with:
-          personal_access_token: ${{ secrets.HOMEY_PAT }}
+        env:
+          HOMEY_HEADLESS: '1'
+          HOMEY_PAT: ${{ secrets.HOMEY_PAT }}
+        run: |
+          npx homey app publish
+          APP_ID="$(node -p "require('./app.json').id")"
+          echo "url=https://tools.developer.homey.app/apps/app/${APP_ID}" >> "$GITHUB_OUTPUT"
 
       - name: URL
         run: |
