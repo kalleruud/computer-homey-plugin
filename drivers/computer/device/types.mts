@@ -13,6 +13,7 @@ export type ComputerSettings = {
   macAddress: string
   pollIntervalSeconds: number
   targetOs: TargetOs
+  sshHostFingerprint: string
   sshUsername: string
   sshPassword: string
   sshPort: number
