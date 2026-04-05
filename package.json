@@ -9,6 +9,7 @@
   "devDependencies": {
     "@eslint/js": "^9",
     "@tsconfig/node16": "^16",
+    "@types/homey": "npm:homey-apps-sdk-v3-types@^0",
     "@types/node": "^25",
     "eslint": "^9",
     "eslint-plugin-homey-app": "^1",
