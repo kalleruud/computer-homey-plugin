@@ -1,7 +1,7 @@
-import js from '@eslint/js';
-import homeyApp from 'eslint-plugin-homey-app';
-import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import js from '@eslint/js'
+import homeyApp from 'eslint-plugin-homey-app'
+import globals from 'globals'
+import tseslint from 'typescript-eslint'
 
 export default [
   {
@@ -52,4 +52,4 @@ export default [
       ...homeyApp.configs.recommended.rules,
     },
   },
-];
+]
