@@ -19,5 +19,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Generate Homey app manifest
+        run: bun prepare
+
       - name: Validate Homey App
         run: npx homey app validate --level verified

@@ -38,7 +38,6 @@ jobs:
             fi
           done <<'EOF'
           package.json:package.json
-          app.json:app.json
           .homeycompose/app.json:.homeycompose/app.json
           EOF
 

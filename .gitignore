@@ -1,5 +1,7 @@
-/env.json
-/node_modules/
-/.homeybuild/
+env.json
+node_modules/
+.homeybuild/
+app.json
 .eslintcache
 coverage
+.env
