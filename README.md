@@ -4,6 +4,8 @@ Lets you monitor and turn on/off your computer.
 
 # Setup
 
+Preferred: open the repository in the Dev Container. It installs Bun, the Homey CLI, project dependencies, and generates `app.json` automatically.
+
 1. Login
    ```bash
    bunx homey login
