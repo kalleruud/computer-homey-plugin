@@ -1,8 +1,6 @@
-'use strict';
+import { App } from 'homey';
 
-import Homey from 'homey';
-
-module.exports = class MyApp extends Homey.App {
+export default class MyApp extends App {
   /**
    * onInit is called when the app is initialized.
    */
