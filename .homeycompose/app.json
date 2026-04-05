@@ -9,16 +9,20 @@
     "en": "Computer"
   },
   "description": {
-    "en": "Lets you monitor and turn on/off your computer."
+    "en": "Wake, monitor, and power down your computer from Homey."
   },
   "brandColor": "#2d3748",
   "category": ["appliances"],
+  "tags": {
+    "en": ["computer", "wake-on-lan", "ssh", "network"]
+  },
   "permissions": [],
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",
     "xlarge": "/assets/images/xlarge.png"
   },
+  "support": "mailto:ole@kallerud.no",
   "author": {
     "email": "ole@kallerud.no",
     "name": "Ole Kallerud"

@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import Homey from 'homey'
 
 type ComputerDeviceActions = {
@@ -25,15 +27,14 @@ export default class ComputerDriver extends Homey.Driver {
   }
 
   override async onPairListDevices() {
-    if (this.getDevices().length > 0) {
-      return []
-    }
+    const index = this.getDevices().length + 1
+    const defaultName = index === 1 ? 'Computer' : `Computer ${index}`
 
     return [
       {
-        name: 'Computer',
+        name: defaultName,
         data: {
-          id: 'computer',
+          id: randomUUID(),
         },
       },
     ]
