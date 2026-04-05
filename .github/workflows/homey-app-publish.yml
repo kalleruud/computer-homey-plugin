@@ -12,10 +12,22 @@ jobs:
     name: Publish Homey App
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock=false --legacy-peer-deps --ignore-scripts
+
+      - name: Install Homey build peers
+        run: npm install --no-save --legacy-peer-deps @emnapi/core @emnapi/runtime
+
+      - name: Build Homey app manifest
+        run: npx homey app build
 
       - name: Publish Homey App
-        uses: athombv/github-action-homey-app-publish@master
         id: publish
         with:
           personal_access_token: ${{ secrets.HOMEY_PAT }}
