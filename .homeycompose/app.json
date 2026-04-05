@@ -11,8 +11,8 @@
   "description": {
     "en": "Wake, monitor, and power down your computer from Homey."
   },
-  "brandColor": "#2d3748",
-  "category": ["appliances"],
+  "brandColor": "#023047",
+  "category": ["tools"],
   "tags": {
     "en": ["computer", "wake-on-lan", "ssh", "network"]
   },
