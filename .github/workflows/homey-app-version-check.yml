@@ -24,18 +24,22 @@ jobs:
           echo "PR branch must match release/x.y.z" >&2
           exit 1
 
-      - name: Verify package version matches PR branch
+      - name: Verify app versions match PR branch
         env:
           EXPECTED_VERSION: ${{ steps.pr_version.outputs.version }}
         run: |
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          while IFS=':' read -r FILE_NAME FILE_PATH; do
+            FILE_VERSION="$(node -p "require('./${FILE_PATH}').version")"
 
-          if [[ "$PACKAGE_VERSION" == "$EXPECTED_VERSION" ]]; then
-            exit 0
-          fi
-
-          echo "PR branch version $EXPECTED_VERSION does not match package.json version $PACKAGE_VERSION" >&2
-          exit 1
+            if [[ "$FILE_VERSION" != "$EXPECTED_VERSION" ]]; then
+              echo "PR branch version $EXPECTED_VERSION does not match ${FILE_NAME} version $FILE_VERSION" >&2
+              exit 1
+            fi
+          done <<'EOF'
+          package.json:package.json
+          app.json:app.json
+          .homeycompose/app.json:.homeycompose/app.json
+          EOF
 
       - name: Verify changelog file exists
         env:
