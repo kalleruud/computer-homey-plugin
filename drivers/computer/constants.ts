@@ -7,7 +7,13 @@ export const DEFAULTS = {
 
 export const MIN_POLL_INTERVAL_SECONDS = 10
 export const POLL_TIMEOUT_MS = 3000
-export const SHUTDOWN_REFRESH_DELAY_MS = 5000
-export const SSH_READY_TIMEOUT_MS = 10000
-export const STARTUP_REFRESH_DELAY_MS = 10000
+export const SHUTDOWN_REFRESH_DELAY_MS = 5_000
+export const SSH_READY_TIMEOUT_MS = 10_000
+export const STARTUP_REFRESH_DELAY_MS = 10_000
 export const SUDO_PROMPT = '[sudo] password:'
+
+export const SHUTDOWN_COMMANDS = {
+  windows: 'shutdown /s /t 0',
+  linux: `sudo -S -p "${SUDO_PROMPT}" shutdown -h now`,
+  macos: `sudo -S -p "${SUDO_PROMPT}" shutdown -h now`,
+} as const

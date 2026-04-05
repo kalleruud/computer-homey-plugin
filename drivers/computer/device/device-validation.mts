@@ -1,6 +1,6 @@
 import net from 'node:net'
 
-import { SUDO_PROMPT } from '../constants.js'
+import { SHUTDOWN_COMMANDS } from '../constants.js'
 import type { ComputerSettings, TargetOs, Translate } from './types.mjs'
 
 export function getProbeValidationError(
@@ -51,14 +51,7 @@ export function assertCanShutdown(
 }
 
 export function getShutdownCommand(targetOs: TargetOs) {
-  switch (targetOs) {
-    case 'windows':
-      return 'shutdown /s /t 0'
-    case 'macos':
-    case 'linux':
-    default:
-      return `sudo -S -p "${SUDO_PROMPT}" shutdown -h now`
-  }
+  return SHUTDOWN_COMMANDS[targetOs]
 }
 
 export function parseMacAddress(macAddress: string, translate: Translate) {
