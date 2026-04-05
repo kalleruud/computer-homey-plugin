@@ -1,4 +1,5 @@
 name: Validate Homey App
+
 on:
   pull_request:
     branches:
@@ -9,14 +10,14 @@ jobs:
     name: Validate Homey App
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install --package-lock=false --legacy-peer-deps --ignore-scripts
+        run: bun install --frozen-lockfile
 
       - name: Validate Homey App
         run: npx homey app validate --level verified
