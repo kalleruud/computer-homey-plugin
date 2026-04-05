@@ -1,6 +1,6 @@
-import { App } from 'homey';
+import Homey from 'homey';
 
-export default class MyApp extends App {
+export default class MyApp extends Homey.App {
   /**
    * onInit is called when the app is initialized.
    */
