@@ -50,3 +50,8 @@ Wake, monitor, and power down your computer from Homey.
 - Wake-on-LAN must be enabled in the computer BIOS or UEFI and operating system.
 - The app marks the computer as online when SSH responds. If ping works but SSH does not, Homey shows the computer as on with a connectivity warning.
 - Linux and macOS shutdown uses `sudo shutdown -h now`, so the configured SSH account must be allowed to run that command.
+
+# Credits
+
+- [Driver photo](https://unsplash.com/photos/a-computer-monitor-sitting-on-top-of-a-desk-3ttxeT6-Flo?utm_source=unsplash&utm_medium=referral&utm_content=creditShareLink) by [ichwar -](https://unsplash.com/@ilmuktigraphic)
+ 
