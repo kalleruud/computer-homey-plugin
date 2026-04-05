@@ -136,6 +136,44 @@ function scheduleRefresh(device: Homey.Device, delayMs: number) {
   }, delayMs)
 }
 
+async function applyPollResult(
+  device: Homey.Device,
+  {
+    isOnline,
+    isSshAlarmActive,
+    warning,
+    logMessage,
+  }: {
+    isOnline: boolean
+    isSshAlarmActive: boolean
+    warning?: string
+    logMessage?: string
+  }
+) {
+  if (warning) {
+    await device.setWarning(warning)
+  } else {
+    await device.unsetWarning()
+  }
+
+  if (
+    device.hasCapability('alarm_ssh') &&
+    device.getCapabilityValue('alarm_ssh') !== isSshAlarmActive
+  ) {
+    await device.setCapabilityValue('alarm_ssh', isSshAlarmActive)
+  }
+
+  if (logMessage) {
+    device.log(logMessage)
+  }
+
+  if (device.getCapabilityValue('onoff') !== isOnline) {
+    await device.setCapabilityValue('onoff', isOnline)
+  }
+
+  return isOnline
+}
+
 async function pollOnlineStatus(device: Homey.Device) {
   const state = getDeviceState(device)
 
@@ -152,17 +190,11 @@ async function pollOnlineStatus(device: Homey.Device) {
     )
 
     if (validationError) {
-      await device.setWarning(validationError)
-
-      if (device.hasCapability('alarm_ssh')) {
-        await device.setCapabilityValue('alarm_ssh', true)
-      }
-
-      if (device.getCapabilityValue('onoff') !== false) {
-        await device.setCapabilityValue('onoff', false)
-      }
-
-      return false
+      return applyPollResult(device, {
+        isOnline: false,
+        isSshAlarmActive: true,
+        warning: validationError,
+      })
     }
 
     const isSshReachable = await probeTcpPort(
@@ -171,21 +203,11 @@ async function pollOnlineStatus(device: Homey.Device) {
     )
 
     if (isSshReachable) {
-      await device.unsetWarning()
-
-      if (device.hasCapability('alarm_ssh')) {
-        await device.setCapabilityValue('alarm_ssh', false)
-      }
-
-      device.log(
-        `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ssh reachable)`
-      )
-
-      if (device.getCapabilityValue('onoff') !== true) {
-        await device.setCapabilityValue('onoff', true)
-      }
-
-      return true
+      return applyPollResult(device, {
+        isOnline: true,
+        isSshAlarmActive: false,
+        logMessage: `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ssh reachable)`,
+      })
     }
 
     const isPingReachable = await probePing(settings.ipAddress, () => {
@@ -193,38 +215,19 @@ async function pollOnlineStatus(device: Homey.Device) {
     })
 
     if (isPingReachable) {
-      await device.setWarning(translate(device, 'warnings.ssh_unavailable'))
-
-      if (device.hasCapability('alarm_ssh')) {
-        await device.setCapabilityValue('alarm_ssh', true)
-      }
-
-      device.log(
-        `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ping reachable, ssh unavailable)`
-      )
-
-      if (device.getCapabilityValue('onoff') !== true) {
-        await device.setCapabilityValue('onoff', true)
-      }
-
-      return true
+      return applyPollResult(device, {
+        isOnline: true,
+        isSshAlarmActive: true,
+        warning: translate(device, 'warnings.ssh_unavailable'),
+        logMessage: `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ping reachable, ssh unavailable)`,
+      })
     }
 
-    await device.unsetWarning()
-
-    if (device.hasCapability('alarm_ssh')) {
-      await device.setCapabilityValue('alarm_ssh', true)
-    }
-
-    device.log(
-      `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: offline`
-    )
-
-    if (device.getCapabilityValue('onoff') !== false) {
-      await device.setCapabilityValue('onoff', false)
-    }
-
-    return false
+    return applyPollResult(device, {
+      isOnline: false,
+      isSshAlarmActive: true,
+      logMessage: `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: offline`,
+    })
   } catch (error) {
     device.error('Failed to poll the computer status', error)
     return device.getCapabilityValue('onoff') === true
