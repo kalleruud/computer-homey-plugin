@@ -55,7 +55,7 @@ export function getShutdownCommand(targetOs: TargetOs) {
 }
 
 export function parseMacAddress(macAddress: string, translate: Translate) {
-  const normalizedMacAddress = macAddress.replace(/[^a-fA-F0-9]/g, '')
+  const normalizedMacAddress = macAddress.replaceAll(/[^a-fA-F0-9]/g, '')
 
   if (normalizedMacAddress.length !== 12) {
     throw new Error(translate('errors.invalid_mac_address'))
@@ -73,5 +73,5 @@ function isValidPort(value: number) {
 }
 
 function isValidMacAddress(value: string) {
-  return value.replace(/[^a-fA-F0-9]/g, '').length === 12
+  return value.replaceAll(/[^a-fA-F0-9]/g, '').length === 12
 }
