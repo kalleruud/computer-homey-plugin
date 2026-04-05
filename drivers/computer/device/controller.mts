@@ -24,8 +24,8 @@ const deviceStates = new WeakMap<Homey.Device, DeviceState>()
 
 export async function onInit(device: Homey.Device) {
   device.log('Computer device has been initialized')
-  if (!device.hasCapability('alarm_ssh')) {
-    await device.addCapability('alarm_ssh')
+  if (!device.hasCapability('alarm_connectivity')) {
+    await device.addCapability('alarm_connectivity')
   }
 
   device.registerCapabilityListener('onoff', async value => {
@@ -140,11 +140,11 @@ async function applyPollResult(
   device: Homey.Device,
   {
     isOnline,
-    isSshAlarmActive,
+    isConnectivityAlarmActive,
     warning,
   }: {
     isOnline: boolean
-    isSshAlarmActive: boolean
+    isConnectivityAlarmActive: boolean
     warning?: string
   }
 ) {
@@ -155,10 +155,14 @@ async function applyPollResult(
   }
 
   if (
-    device.hasCapability('alarm_ssh') &&
-    device.getCapabilityValue('alarm_ssh') !== isSshAlarmActive
+    device.hasCapability('alarm_connectivity') &&
+    device.getCapabilityValue('alarm_connectivity') !==
+      isConnectivityAlarmActive
   ) {
-    await device.setCapabilityValue('alarm_ssh', isSshAlarmActive)
+    await device.setCapabilityValue(
+      'alarm_connectivity',
+      isConnectivityAlarmActive
+    )
   }
 
   if (device.getCapabilityValue('onoff') !== isOnline) {
@@ -186,7 +190,7 @@ async function pollOnlineStatus(device: Homey.Device) {
     if (validationError) {
       return applyPollResult(device, {
         isOnline: false,
-        isSshAlarmActive: true,
+        isConnectivityAlarmActive: true,
         warning: validationError,
       })
     }
@@ -199,7 +203,7 @@ async function pollOnlineStatus(device: Homey.Device) {
     if (isSshReachable) {
       return applyPollResult(device, {
         isOnline: true,
-        isSshAlarmActive: false,
+        isConnectivityAlarmActive: false,
       })
     }
 
@@ -210,14 +214,14 @@ async function pollOnlineStatus(device: Homey.Device) {
     if (isPingReachable) {
       return applyPollResult(device, {
         isOnline: true,
-        isSshAlarmActive: true,
+        isConnectivityAlarmActive: true,
         warning: translate(device, 'warnings.ssh_unavailable'),
       })
     }
 
     return applyPollResult(device, {
       isOnline: false,
-      isSshAlarmActive: true,
+      isConnectivityAlarmActive: true,
     })
   } catch (error) {
     device.error('Failed to poll the computer status', error)

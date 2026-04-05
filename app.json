@@ -2,7 +2,7 @@
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "no.kallerud.computer",
   "version": "1.0.0",
-  "compatibility": ">=12.0.1",
+  "compatibility": ">=12.2.0",
   "sdk": 3,
   "platforms": [
     "local"
@@ -71,7 +71,7 @@
       ],
       "capabilities": [
         "onoff",
-        "alarm_ssh"
+        "alarm_connectivity"
       ],
       "icon": "/drivers/computer/assets/icon.svg",
       "images": {
@@ -216,22 +216,5 @@
         }
       ]
     }
-  ],
-  "capabilities": {
-    "alarm_ssh": {
-      "type": "boolean",
-      "title": {
-        "en": "SSH unavailable"
-      },
-      "getable": true,
-      "setable": false,
-      "uiComponent": "sensor",
-      "insightsTitleTrue": {
-        "en": "SSH became unavailable"
-      },
-      "insightsTitleFalse": {
-        "en": "SSH became available"
-      }
-    }
-  }
+  ]
 }
