@@ -54,4 +54,5 @@ Wake, monitor, and power down your computer from Homey.
 # Credits
 
 - [App icon](https://unsplash.com/illustrations/a-simple-black-and-white-computer-icon-uKxKGmoiW9g) by [Boxicons](https://unsplash.com/@boxicons/illustrations)
-- [Driver photo](https://unsplash.com/photos/a-computer-monitor-sitting-on-top-of-a-desk-3ttxeT6-Flo?utm_source=unsplash&utm_medium=referral&utm_content=creditShareLink) by [ichwar -](https://unsplash.com/@ilmuktigraphic)
+- [Store photo](https://unsplash.com/photos/white-and-black-hp-laptop-hRI8f-2WyDw) by [John M. Smith](https://unsplash.com/@john_smith)
+- [Driver photo](https://unsplash.com/photos/a-computer-monitor-sitting-on-top-of-a-desk-3ttxeT6-Flo) by [ichwar -](https://unsplash.com/@ilmuktigraphic)
