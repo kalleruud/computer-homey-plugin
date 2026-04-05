@@ -1,13 +1,10 @@
 import Homey from 'homey'
 import {
-  onAdded,
-  onDeleted,
   onInit,
-  onRenamed,
   onSettings,
-  onUninit,
   shutdownComputer,
   startComputer,
+  stopPolling,
 } from './device/controller.mjs'
 import type { DeviceSettingsEvent } from './device/types.mjs'
 
@@ -17,7 +14,7 @@ export default class ComputerDevice extends Homey.Device {
   }
 
   override async onAdded() {
-    await onAdded(this)
+    this.log('Computer device has been added')
   }
 
   override async onSettings(event: DeviceSettingsEvent) {
@@ -25,15 +22,16 @@ export default class ComputerDevice extends Homey.Device {
   }
 
   override async onRenamed(name: string) {
-    await onRenamed(this, name)
+    this.log('Computer device was renamed to', name)
   }
 
   override async onDeleted() {
-    await onDeleted(this)
+    stopPolling(this)
+    this.log('Computer device has been deleted')
   }
 
   override async onUninit() {
-    await onUninit(this)
+    stopPolling(this)
   }
 
   async startComputer() {

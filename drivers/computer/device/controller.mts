@@ -24,15 +24,20 @@ const deviceStates = new WeakMap<Homey.Device, DeviceState>()
 
 export async function onInit(device: Homey.Device) {
   device.log('Computer device has been initialized')
-  await ensureAlarmSshCapability(device)
-  device.registerCapabilityListener('onoff', value =>
-    handleOnOffCapability(device, value)
-  )
-  startPolling(device)
-}
+  if (!device.hasCapability('alarm_ssh')) {
+    await device.addCapability('alarm_ssh')
+  }
 
-export async function onAdded(device: Homey.Device) {
-  device.log('Computer device has been added')
+  device.registerCapabilityListener('onoff', async value => {
+    if (value) {
+      await startComputer(device)
+      return
+    }
+
+    await shutdownComputer(device)
+  })
+
+  startPolling(device)
 }
 
 export async function onSettings(
@@ -43,19 +48,6 @@ export async function onSettings(
   startPolling(device)
   await pollOnlineStatus(device)
   return translate(device, 'messages.settings_updated')
-}
-
-export async function onRenamed(device: Homey.Device, name: string) {
-  device.log('Computer device was renamed to', name)
-}
-
-export async function onDeleted(device: Homey.Device) {
-  stopPolling(device)
-  device.log('Computer device has been deleted')
-}
-
-export async function onUninit(device: Homey.Device) {
-  stopPolling(device)
 }
 
 export async function startComputer(device: Homey.Device) {
@@ -70,15 +62,6 @@ export async function shutdownComputer(device: Homey.Device) {
   assertCanShutdown(settings, key => translate(device, key))
   await executeShutdown(settings, getPowerOptions(device))
   scheduleRefresh(device, SHUTDOWN_REFRESH_DELAY_MS)
-}
-
-async function handleOnOffCapability(device: Homey.Device, value: boolean) {
-  if (value) {
-    await startComputer(device)
-    return
-  }
-
-  await shutdownComputer(device)
 }
 
 function getDeviceState(device: Homey.Device): DeviceState {
@@ -125,7 +108,7 @@ function startPolling(device: Homey.Device) {
   void pollOnlineStatus(device)
 }
 
-function stopPolling(device: Homey.Device) {
+export function stopPolling(device: Homey.Device) {
   const state = getDeviceState(device)
 
   if (state.pollIntervalTimer) {
@@ -170,8 +153,15 @@ async function pollOnlineStatus(device: Homey.Device) {
 
     if (validationError) {
       await device.setWarning(validationError)
-      await syncSshAlarmState(device, true)
-      await syncOnOffState(device, false)
+
+      if (device.hasCapability('alarm_ssh')) {
+        await device.setCapabilityValue('alarm_ssh', true)
+      }
+
+      if (device.getCapabilityValue('onoff') !== false) {
+        await device.setCapabilityValue('onoff', false)
+      }
+
       return false
     }
 
@@ -182,11 +172,19 @@ async function pollOnlineStatus(device: Homey.Device) {
 
     if (isSshReachable) {
       await device.unsetWarning()
-      await syncSshAlarmState(device, false)
+
+      if (device.hasCapability('alarm_ssh')) {
+        await device.setCapabilityValue('alarm_ssh', false)
+      }
+
       device.log(
         `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ssh reachable)`
       )
-      await syncOnOffState(device, true)
+
+      if (device.getCapabilityValue('onoff') !== true) {
+        await device.setCapabilityValue('onoff', true)
+      }
+
       return true
     }
 
@@ -196,47 +194,41 @@ async function pollOnlineStatus(device: Homey.Device) {
 
     if (isPingReachable) {
       await device.setWarning(translate(device, 'warnings.ssh_unavailable'))
-      await syncSshAlarmState(device, true)
+
+      if (device.hasCapability('alarm_ssh')) {
+        await device.setCapabilityValue('alarm_ssh', true)
+      }
+
       device.log(
         `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ping reachable, ssh unavailable)`
       )
-      await syncOnOffState(device, true)
+
+      if (device.getCapabilityValue('onoff') !== true) {
+        await device.setCapabilityValue('onoff', true)
+      }
+
       return true
     }
 
     await device.unsetWarning()
-    await syncSshAlarmState(device, true)
+
+    if (device.hasCapability('alarm_ssh')) {
+      await device.setCapabilityValue('alarm_ssh', true)
+    }
+
     device.log(
       `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: offline`
     )
-    await syncOnOffState(device, false)
+
+    if (device.getCapabilityValue('onoff') !== false) {
+      await device.setCapabilityValue('onoff', false)
+    }
+
     return false
   } catch (error) {
     device.error('Failed to poll the computer status', error)
     return device.getCapabilityValue('onoff') === true
   } finally {
     state.pollInFlight = false
-  }
-}
-
-async function syncOnOffState(device: Homey.Device, isOnline: boolean) {
-  if (device.getCapabilityValue('onoff') !== isOnline) {
-    await device.setCapabilityValue('onoff', isOnline)
-  }
-}
-
-async function syncSshAlarmState(device: Homey.Device, isUnreachable: boolean) {
-  if (!device.hasCapability('alarm_ssh')) {
-    return
-  }
-
-  if (device.getCapabilityValue('alarm_ssh') !== isUnreachable) {
-    await device.setCapabilityValue('alarm_ssh', isUnreachable)
-  }
-}
-
-async function ensureAlarmSshCapability(device: Homey.Device) {
-  if (!device.hasCapability('alarm_ssh')) {
-    await device.addCapability('alarm_ssh')
   }
 }

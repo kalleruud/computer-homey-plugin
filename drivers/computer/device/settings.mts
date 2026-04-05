@@ -1,29 +1,44 @@
 import { DEFAULTS, MIN_POLL_INTERVAL_SECONDS } from '../constants.js'
-import {
-  getNumber,
-  getTargetOs,
-  getTrimmedString,
-  type ComputerSettings,
-  type RawDeviceSettings,
-} from './types.mjs'
+import type { ComputerSettings, RawDeviceSettings } from './types.mjs'
 
 export function getComputerSettings(
   settings: RawDeviceSettings
 ): ComputerSettings {
   return {
-    ipAddress: getTrimmedString(settings.ip_address),
-    macAddress: getTrimmedString(settings.mac_address),
-    pollIntervalSeconds: getNumber(
-      settings.poll_interval,
-      DEFAULTS.POLL_INTERVAL_SECONDS
-    ),
-    targetOs: getTargetOs(settings.target_os),
-    sshUsername: getTrimmedString(settings.ssh_username),
-    sshPassword: getTrimmedString(settings.ssh_password),
-    sshPort: getNumber(settings.ssh_port, DEFAULTS.SSH_PORT),
+    ipAddress:
+      typeof settings.ip_address === 'string' ? settings.ip_address.trim() : '',
+    macAddress:
+      typeof settings.mac_address === 'string'
+        ? settings.mac_address.trim()
+        : '',
+    pollIntervalSeconds:
+      typeof settings.poll_interval === 'number' &&
+      Number.isFinite(settings.poll_interval)
+        ? settings.poll_interval
+        : DEFAULTS.POLL_INTERVAL_SECONDS,
+    targetOs:
+      settings.target_os === 'windows' ||
+      settings.target_os === 'linux' ||
+      settings.target_os === 'macos'
+        ? settings.target_os
+        : 'linux',
+    sshUsername:
+      typeof settings.ssh_username === 'string'
+        ? settings.ssh_username.trim()
+        : '',
+    sshPassword:
+      typeof settings.ssh_password === 'string'
+        ? settings.ssh_password.trim()
+        : '',
+    sshPort:
+      typeof settings.ssh_port === 'number' &&
+      Number.isFinite(settings.ssh_port)
+        ? settings.ssh_port
+        : DEFAULTS.SSH_PORT,
     wolBroadcastAddress:
-      getTrimmedString(settings.wol_broadcast_address) ||
-      DEFAULTS.WOL_BROADCAST_ADDRESS,
+      (typeof settings.wol_broadcast_address === 'string'
+        ? settings.wol_broadcast_address.trim()
+        : '') || DEFAULTS.WOL_BROADCAST_ADDRESS,
   }
 }
 
