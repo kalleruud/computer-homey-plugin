@@ -142,12 +142,10 @@ async function applyPollResult(
     isOnline,
     isSshAlarmActive,
     warning,
-    logMessage,
   }: {
     isOnline: boolean
     isSshAlarmActive: boolean
     warning?: string
-    logMessage?: string
   }
 ) {
   if (warning) {
@@ -161,10 +159,6 @@ async function applyPollResult(
     device.getCapabilityValue('alarm_ssh') !== isSshAlarmActive
   ) {
     await device.setCapabilityValue('alarm_ssh', isSshAlarmActive)
-  }
-
-  if (logMessage) {
-    device.log(logMessage)
   }
 
   if (device.getCapabilityValue('onoff') !== isOnline) {
@@ -206,7 +200,6 @@ async function pollOnlineStatus(device: Homey.Device) {
       return applyPollResult(device, {
         isOnline: true,
         isSshAlarmActive: false,
-        logMessage: `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ssh reachable)`,
       })
     }
 
@@ -219,14 +212,12 @@ async function pollOnlineStatus(device: Homey.Device) {
         isOnline: true,
         isSshAlarmActive: true,
         warning: translate(device, 'warnings.ssh_unavailable'),
-        logMessage: `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ping reachable, ssh unavailable)`,
       })
     }
 
     return applyPollResult(device, {
       isOnline: false,
       isSshAlarmActive: true,
-      logMessage: `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: offline`,
     })
   } catch (error) {
     device.error('Failed to poll the computer status', error)
