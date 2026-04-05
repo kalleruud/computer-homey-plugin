@@ -8,6 +8,7 @@
   - One flat bullet list of short, concise, user-visible changes
 - Do not use subsections, nested bullets in changelog files, or long implementation details.
 - Changelog template:
+
   ```md
   # vX.Y.Z
 
