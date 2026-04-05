@@ -13,7 +13,7 @@ export default class ComputerDevice extends Homey.Device {
     await onInit(this)
   }
 
-  override async onAdded() {
+  override onAdded() {
     this.log('Computer device has been added')
   }
 
@@ -21,11 +21,11 @@ export default class ComputerDevice extends Homey.Device {
     return onSettings(this, event)
   }
 
-  override async onRenamed(name: string) {
+  override onRenamed(name: string) {
     this.log('Computer device was renamed to', name)
   }
 
-  override async onDeleted() {
+  override onDeleted() {
     stopPolling(this)
     this.log('Computer device has been deleted')
   }
