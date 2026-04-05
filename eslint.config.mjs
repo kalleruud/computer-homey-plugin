@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint';
 
 export default [
   {
-    ignores: ['.homeybuild/**', 'node_modules/**'],
+    ignores: ['.homeybuild', 'node_modules', ".gitignore"],
   },
   {
     files: ['**/*.{js,cjs}'],
