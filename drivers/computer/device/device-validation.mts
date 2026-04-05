@@ -3,8 +3,6 @@ import net from 'node:net'
 import { SHUTDOWN_COMMANDS } from '../constants.js'
 import type { ComputerSettings, TargetOs, Translate } from './types.mjs'
 
-const SSH_HOST_FINGERPRINT_PATTERN = /^sha256:([A-Za-z0-9+/]{43}=?)$/i
-
 export function getProbeValidationError(
   settings: ComputerSettings,
   translate: Translate
@@ -50,8 +48,6 @@ export function assertCanShutdown(
   if (settings.sshPassword.length === 0) {
     throw new Error(translate('errors.missing_ssh_password'))
   }
-
-  parseSshHostFingerprint(settings.sshHostFingerprint, translate)
 }
 
 export function getShutdownCommand(targetOs: TargetOs) {
@@ -66,29 +62,6 @@ export function parseMacAddress(macAddress: string, translate: Translate) {
   }
 
   return Buffer.from(normalizedMacAddress, 'hex')
-}
-
-export function parseSshHostFingerprint(
-  fingerprint: string,
-  translate: Translate
-) {
-  if (fingerprint.length === 0) {
-    throw new Error(translate('errors.missing_ssh_host_fingerprint'))
-  }
-
-  const match = SSH_HOST_FINGERPRINT_PATTERN.exec(fingerprint)
-
-  if (!match) {
-    throw new Error(translate('errors.invalid_ssh_host_fingerprint'))
-  }
-
-  const hash = match[1]
-
-  if (hash === undefined) {
-    throw new Error(translate('errors.invalid_ssh_host_fingerprint'))
-  }
-
-  return `SHA256:${hash.replace(/=+$/u, '')}`
 }
 
 function isValidIpv4Address(value: string) {

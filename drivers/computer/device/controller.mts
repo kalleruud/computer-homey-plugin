@@ -42,10 +42,9 @@ export async function onInit(device: Homey.Device) {
 
 export async function onSettings(
   device: Homey.Device,
-  event: DeviceSettingsEvent
+  { changedKeys }: DeviceSettingsEvent
 ) {
-  void event
-  device.log('Computer settings changed')
+  device.log('Computer settings changed', changedKeys)
   startPolling(device)
   await pollOnlineStatus(device)
   return translate(device, 'messages.settings_updated')

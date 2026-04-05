@@ -90,18 +90,7 @@
       "en": "SSH password"
     },
     "hint": {
-      "en": "The password Homey should use when signing in over SSH."
-    },
-    "value": ""
-  },
-  {
-    "id": "ssh_host_fingerprint",
-    "type": "text",
-    "label": {
-      "en": "SSH host fingerprint"
-    },
-    "hint": {
-      "en": "Pin the server host key as a SHA256 fingerprint, for example SHA256:AbCdEf..."
+      "en": "For Linux and macOS, this should usually be the same password needed for sudo."
     },
     "value": ""
   },

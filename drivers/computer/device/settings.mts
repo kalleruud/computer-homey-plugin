@@ -22,16 +22,14 @@ export function getComputerSettings(
       settings.target_os === 'macos'
         ? settings.target_os
         : 'linux',
-    sshHostFingerprint:
-      typeof settings.ssh_host_fingerprint === 'string'
-        ? settings.ssh_host_fingerprint.trim()
-        : '',
     sshUsername:
       typeof settings.ssh_username === 'string'
         ? settings.ssh_username.trim()
         : '',
     sshPassword:
-      typeof settings.ssh_password === 'string' ? settings.ssh_password : '',
+      typeof settings.ssh_password === 'string'
+        ? settings.ssh_password.trim()
+        : '',
     sshPort:
       typeof settings.ssh_port === 'number' &&
       Number.isFinite(settings.ssh_port)

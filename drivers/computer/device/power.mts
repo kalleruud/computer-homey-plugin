@@ -1,14 +1,9 @@
-import { createHash } from 'node:crypto'
 import dgram from 'node:dgram'
 
-import { Client } from 'ssh2'
+import { Client, type ClientChannel } from 'ssh2'
 
-import { DEFAULTS, SSH_READY_TIMEOUT_MS } from '../constants.js'
-import {
-  getShutdownCommand,
-  parseMacAddress,
-  parseSshHostFingerprint,
-} from './device-validation.mjs'
+import { DEFAULTS, SSH_READY_TIMEOUT_MS, SUDO_PROMPT } from '../constants.js'
+import { getShutdownCommand, parseMacAddress } from './device-validation.mjs'
 import type { ComputerSettings, Translate } from './types.mjs'
 
 type ErrorLogger = (message: string, error: unknown) => void
@@ -17,18 +12,6 @@ type PowerOptions = {
   logError: ErrorLogger
   translate: Translate
 }
-
-const SSH_COMMAND_FAILED_ERROR = 'SSH shutdown command failed'
-const SSH_HOST_VERIFICATION_FAILED_ERROR = 'SSH host verification failed'
-const SSH_PASSWORDLESS_SUDO_REQUIRED_ERROR =
-  'SSH shutdown requires passwordless sudo'
-
-const PASSWORDLESS_SUDO_ERROR_PATTERNS = [
-  /sudo: .*password.*required/iu,
-  /sudo: no tty present and no askpass program specified/iu,
-  /sudo: a terminal is required to read the password/iu,
-  /sudo: sorry, you must have a tty to run sudo/iu,
-]
 
 export async function sendWakeOnLan(
   settings: ComputerSettings,
@@ -80,30 +63,25 @@ export async function executeShutdown(
   { logError, translate }: PowerOptions
 ) {
   const command = getShutdownCommand(settings.targetOs)
-  const expectedHostFingerprint = parseSshHostFingerprint(
-    settings.sshHostFingerprint,
-    translate
-  )
+  const needsSudo = settings.targetOs !== 'windows'
 
   try {
-    await executeSshCommand(settings, command, expectedHostFingerprint)
+    await executeSshCommand(settings, command, needsSudo)
   } catch (error) {
-    const { logMessage, userMessage } = getShutdownFailure(error, translate)
-
-    logError(logMessage, new Error(logMessage))
-    throw new Error(userMessage)
+    logError('Failed to shut down the computer over SSH', error)
+    throw new Error(translate('errors.ssh_shutdown_failed'))
   }
 }
 
 async function executeSshCommand(
   settings: ComputerSettings,
   command: string,
-  expectedHostFingerprint: string
+  needsSudo: boolean
 ) {
   await new Promise<void>((resolve, reject) => {
     const client = new Client()
     let settled = false
-    let hostVerificationFailed = false
+    let passwordSent = false
     let stdout = ''
     let stderr = ''
 
@@ -123,17 +101,19 @@ async function executeSshCommand(
       resolve()
     }
 
-    client.once('error', error => {
-      if (hostVerificationFailed) {
-        finish(new Error(SSH_HOST_VERIFICATION_FAILED_ERROR))
+    const maybeSendPassword = (chunk: string, stream: ClientChannel) => {
+      if (!needsSudo || passwordSent || !chunk.includes(SUDO_PROMPT)) {
         return
       }
 
-      finish(error)
-    })
+      passwordSent = true
+      stream.write(`${settings.sshPassword}\n`)
+    }
+
+    client.once('error', finish)
 
     client.once('ready', () => {
-      client.exec(command, (error, stream) => {
+      client.exec(command, { pty: needsSudo }, (error, stream) => {
         if (error) {
           finish(error)
           return
@@ -142,11 +122,15 @@ async function executeSshCommand(
         stream.once('error', finish)
 
         stream.on('data', (data: Buffer) => {
-          stdout += data.toString()
+          const chunk = data.toString()
+          stdout += chunk
+          maybeSendPassword(chunk, stream)
         })
 
         stream.stderr.on('data', (data: Buffer) => {
-          stderr += data.toString()
+          const chunk = data.toString()
+          stderr += chunk
+          maybeSendPassword(chunk, stream)
         })
 
         stream.once('close', (code: number | null) => {
@@ -155,14 +139,12 @@ async function executeSshCommand(
             return
           }
 
-          const remoteOutput = `${stderr}\n${stdout}`
+          const errorMessage =
+            stderr.trim() ||
+            stdout.trim() ||
+            `SSH command exited with code ${code.toString()}`
 
-          if (requiresPasswordlessSudo(remoteOutput)) {
-            finish(new Error(SSH_PASSWORDLESS_SUDO_REQUIRED_ERROR))
-            return
-          }
-
-          finish(new Error(SSH_COMMAND_FAILED_ERROR))
+          finish(new Error(errorMessage))
         })
       })
     })
@@ -175,51 +157,6 @@ async function executeSshCommand(
       readyTimeout: SSH_READY_TIMEOUT_MS,
       keepaliveInterval: 2000,
       keepaliveCountMax: 2,
-      hostVerifier: (key: Buffer) => {
-        const actualHostFingerprint = getHostFingerprint(key)
-        const isVerified = actualHostFingerprint === expectedHostFingerprint
-
-        if (!isVerified) {
-          hostVerificationFailed = true
-        }
-
-        return isVerified
-      },
     })
   })
-}
-
-function getHostFingerprint(key: Buffer) {
-  return `SHA256:${createHash('sha256').update(key).digest('base64').replace(/=+$/u, '')}`
-}
-
-function requiresPasswordlessSudo(remoteOutput: string) {
-  return PASSWORDLESS_SUDO_ERROR_PATTERNS.some(pattern =>
-    pattern.test(remoteOutput)
-  )
-}
-
-function getShutdownFailure(error: unknown, translate: Translate) {
-  const message = error instanceof Error ? error.message : ''
-
-  if (message === SSH_HOST_VERIFICATION_FAILED_ERROR) {
-    return {
-      logMessage:
-        'Failed to shut down the computer over SSH: host verification failed',
-      userMessage: translate('errors.ssh_host_verification_failed'),
-    }
-  }
-
-  if (message === SSH_PASSWORDLESS_SUDO_REQUIRED_ERROR) {
-    return {
-      logMessage:
-        'Failed to shut down the computer over SSH: passwordless sudo is required',
-      userMessage: translate('errors.ssh_shutdown_requires_passwordless_sudo'),
-    }
-  }
-
-  return {
-    logMessage: 'Failed to shut down the computer over SSH',
-    userMessage: translate('errors.ssh_shutdown_failed'),
-  }
 }
