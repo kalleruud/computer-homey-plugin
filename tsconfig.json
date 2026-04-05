@@ -15,5 +15,6 @@
     "noPropertyAccessFromIndexSignature": false,
 
     "outDir": ".homeybuild/"
-  }
+  },
+  "exclude": ["**/tests"]
 }
