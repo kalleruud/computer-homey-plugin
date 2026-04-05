@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
   "type": "boolean",
   "title": {
     "en": "SSH unavailable"
