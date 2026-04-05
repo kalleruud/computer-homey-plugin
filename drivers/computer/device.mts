@@ -4,20 +4,20 @@ import net from 'node:net';
 
 import Homey from 'homey';
 import { Client, type ClientChannel } from 'ssh2';
-
-const DEFAULT_POLL_INTERVAL_SECONDS = 60;
-const DEFAULT_SSH_PORT = 22;
-const DEFAULT_WOL_BROADCAST_ADDRESS = '255.255.255.255';
-const DEFAULT_WOL_PORT = 9;
-const MIN_POLL_INTERVAL_SECONDS = 10;
-const POLL_TIMEOUT_MS = 3000;
-const SHUTDOWN_REFRESH_DELAY_MS = 5000;
-const SSH_READY_TIMEOUT_MS = 10000;
-const STARTUP_REFRESH_DELAY_MS = 10000;
-const SUDO_PROMPT = '[sudo] password:';
+import {
+  DEFAULTS,
+  MIN_POLL_INTERVAL_SECONDS,
+  POLL_TIMEOUT_MS,
+  SHUTDOWN_REFRESH_DELAY_MS,
+  SSH_READY_TIMEOUT_MS,
+  STARTUP_REFRESH_DELAY_MS,
+  SUDO_PROMPT,
+} from './constants.js';
 
 type TargetOs = 'windows' | 'linux' | 'macos';
-type DeviceSettingsEvent = Parameters<typeof Homey.Device.prototype.onSettings>[0];
+type DeviceSettingsEvent = Parameters<
+  typeof Homey.Device.prototype.onSettings
+>[0];
 type DeviceSettings = DeviceSettingsEvent['newSettings'];
 type DeviceSettingValue = DeviceSettings[string];
 
@@ -219,15 +219,15 @@ export default class ComputerDevice extends Homey.Device {
       macAddress: this.getTrimmedString(settings.mac_address),
       pollIntervalSeconds: this.getNumber(
         settings.poll_interval,
-        DEFAULT_POLL_INTERVAL_SECONDS
+        DEFAULTS.POLL_INTERVAL_SECONDS
       ),
       targetOs: this.getTargetOs(settings.target_os),
       sshUsername: this.getTrimmedString(settings.ssh_username),
       sshPassword: this.getTrimmedString(settings.ssh_password),
-      sshPort: this.getNumber(settings.ssh_port, DEFAULT_SSH_PORT),
+      sshPort: this.getNumber(settings.ssh_port, DEFAULTS.SSH_PORT),
       wolBroadcastAddress:
         this.getTrimmedString(settings.wol_broadcast_address) ||
-        DEFAULT_WOL_BROADCAST_ADDRESS,
+        DEFAULTS.WOL_BROADCAST_ADDRESS,
     };
   }
 
@@ -339,7 +339,7 @@ export default class ComputerDevice extends Homey.Device {
         socket.setBroadcast(true);
         socket.send(
           magicPacket,
-          DEFAULT_WOL_PORT,
+          DEFAULTS.WOL_PORT,
           settings.wolBroadcastAddress,
           error => {
             socket.close();
