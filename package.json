@@ -6,14 +6,14 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@eslint/js": "latest",
+    "@eslint/js": "^9",
     "@tsconfig/node16": "^16",
     "@types/node": "^25",
-    "eslint": "latest",
+    "eslint": "^9",
     "eslint-plugin-homey-app": "^1",
     "globals": "^17",
     "homey": "^4",
     "typescript": "^6",
-    "typescript-eslint": "latest"
+    "typescript-eslint": "^8"
   }
 }
