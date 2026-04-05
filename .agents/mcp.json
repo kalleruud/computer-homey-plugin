@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "homey": {
+      "url": "https://apps.developer.homey.app/~gitbook/mcp",
+    }
+  }
+}

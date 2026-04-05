@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/app/schema.json",
   "id": "no.kallerud.computer",
   "version": "1.0.0",
   "compatibility": ">=5.0.0",
@@ -16,5 +17,9 @@
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",
     "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "email": "ole@kallerud.no",
+    "name": "Ole Kallerud"
   }
 }
