@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process';
 import dgram from 'node:dgram';
 import net from 'node:net';
 
@@ -37,6 +38,7 @@ export default class ComputerDevice extends Homey.Device {
 
   override async onInit() {
     this.log('Computer device has been initialized');
+    await this.ensureAlarmSshCapability();
     this.registerCapabilityListener('onoff', this.onCapabilityOnoff.bind(this));
     this.startPolling();
   }
@@ -141,19 +143,45 @@ export default class ComputerDevice extends Homey.Device {
 
       if (validationError) {
         await this.setWarning(validationError);
+        await this.syncSshAlarmState(true);
         await this.syncOnOffState(false);
         return false;
       }
 
-      await this.unsetWarning();
-
-      const isOnline = await this.probeTcpPort(
+      const isSshReachable = await this.probeTcpPort(
         settings.ipAddress,
         settings.sshPort
       );
-      await this.syncOnOffState(isOnline);
 
-      return isOnline;
+      if (isSshReachable) {
+        await this.unsetWarning();
+        await this.syncSshAlarmState(false);
+        this.log(
+          `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ssh reachable)`
+        );
+        await this.syncOnOffState(true);
+        return true;
+      }
+
+      const isPingReachable = await this.probePing(settings.ipAddress);
+
+      if (isPingReachable) {
+        await this.setWarning(this.homey.__('warnings.ssh_unavailable'));
+        await this.syncSshAlarmState(true);
+        this.log(
+          `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: online (ping reachable, ssh unavailable)`
+        );
+        await this.syncOnOffState(true);
+        return true;
+      }
+
+      await this.unsetWarning();
+      await this.syncSshAlarmState(true);
+      this.log(
+        `Poll connection status for ${settings.ipAddress}:${settings.sshPort}: offline`
+      );
+      await this.syncOnOffState(false);
+      return false;
     } catch (error) {
       this.error('Failed to poll the computer status', error);
       return this.getCapabilityValue('onoff') === true;
@@ -165,6 +193,22 @@ export default class ComputerDevice extends Homey.Device {
   private async syncOnOffState(isOnline: boolean) {
     if (this.getCapabilityValue('onoff') !== isOnline) {
       await this.setCapabilityValue('onoff', isOnline);
+    }
+  }
+
+  private async syncSshAlarmState(isUnreachable: boolean) {
+    if (!this.hasCapability('alarm_ssh')) {
+      return;
+    }
+
+    if (this.getCapabilityValue('alarm_ssh') !== isUnreachable) {
+      await this.setCapabilityValue('alarm_ssh', isUnreachable);
+    }
+  }
+
+  private async ensureAlarmSshCapability() {
+    if (!this.hasCapability('alarm_ssh')) {
+      await this.addCapability('alarm_ssh');
     }
   }
 
@@ -383,8 +427,7 @@ export default class ComputerDevice extends Homey.Device {
         }
 
         passwordSent = true;
-        stream.write(`${settings.sshPassword}
-`);
+        stream.write(`${settings.sshPassword}\n`);
       };
 
       client.once('error', finish);
@@ -458,6 +501,25 @@ export default class ComputerDevice extends Homey.Device {
       socket.once('timeout', () => finish(false));
       socket.once('error', () => finish(false));
       socket.connect(port, host);
+    });
+  }
+
+  private async probePing(host: string) {
+    return new Promise<boolean>(resolve => {
+      execFile('ping', ['-c', '1', '-W', '1', host], error => {
+        if (!error) {
+          resolve(true);
+          return;
+        }
+
+        if ('code' in error && error.code === 'ENOENT') {
+          this.error(
+            'Ping command is not available for fallback status checks'
+          );
+        }
+
+        resolve(false);
+      });
     });
   }
 }

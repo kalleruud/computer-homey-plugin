@@ -70,7 +70,8 @@
         "lan"
       ],
       "capabilities": [
-        "onoff"
+        "onoff",
+        "alarm_ssh"
       ],
       "icon": "/drivers/computer/assets/icon.svg",
       "images": {
@@ -215,5 +216,22 @@
         }
       ]
     }
-  ]
+  ],
+  "capabilities": {
+    "alarm_ssh": {
+      "type": "boolean",
+      "title": {
+        "en": "SSH unavailable"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "insightsTitleTrue": {
+        "en": "SSH became unavailable"
+      },
+      "insightsTitleFalse": {
+        "en": "SSH became available"
+      }
+    }
+  }
 }

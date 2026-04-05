@@ -9,6 +9,9 @@
     "ssh_shutdown_failed": "Failed to shut down the computer over SSH.",
     "startup_failed": "Failed to send the Wake-on-LAN packet."
   },
+  "warnings": {
+    "ssh_unavailable": "Computer responds to ping, but SSH is unavailable. Check the SSH service, port, firewall, or credentials."
+  },
   "messages": {
     "settings_updated": "Computer settings updated."
   }

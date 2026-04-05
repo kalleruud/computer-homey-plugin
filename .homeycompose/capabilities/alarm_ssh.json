@@ -1,0 +1,15 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "SSH unavailable"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "insightsTitleTrue": {
+    "en": "SSH became unavailable"
+  },
+  "insightsTitleFalse": {
+    "en": "SSH became available"
+  }
+}
