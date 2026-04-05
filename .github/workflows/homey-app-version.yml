@@ -1,8 +1,10 @@
 name: Update Homey App Version
 on:
-  push:
+  pull_request:
     branches:
-      - release/*
+      - main
+    types:
+      - closed
 
 # Needed in order to push the commit and create a release
 permissions:
@@ -11,16 +13,20 @@ permissions:
 jobs:
   main:
     name: Update Homey App Version
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Resolve release version and changelog
         id: release
+        env:
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          if [[ "$GITHUB_REF_NAME" =~ ^release/([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+          if [[ "$PR_BRANCH" =~ ^release/([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             VERSION="${BASH_REMATCH[1]}"
           else
             echo "Release branch must match release/x.y.z" >&2
@@ -82,6 +88,8 @@ jobs:
 
       - name: Commit & Push
         if: steps.state.outputs.needs_version_update == 'true'
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -92,7 +100,7 @@ jobs:
           fi
 
           git commit -m "Update Homey App Version to v${{ steps.final_version.outputs.version }}"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:${BASE_BRANCH}
 
       - name: Inspect publication state
         id: publish_state
