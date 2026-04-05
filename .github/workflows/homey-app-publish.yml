@@ -22,9 +22,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Generate Homey app manifest
-        run: bun prepare
-
       - name: Generate Homey changelog
         run: |
           node <<'EOF'
