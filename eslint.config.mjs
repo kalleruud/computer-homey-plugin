@@ -55,5 +55,5 @@ export default [
     rules: {
       ...homeyApp.configs.recommended.rules,
     },
-  }
+  },
 ];
