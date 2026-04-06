@@ -1,3 +1,5 @@
+- NEVER push directly to `main` or `release/*` branches.
+
 - AWLAYS use the [/homey](.agents/skills/homey/SKILL.md) skill.
 - Always run `bun check` and `bun test` after changes to check for errors
   - Run `bun fix` to auto-fix errors from `bun check`. All errors must be fixed before committing.
