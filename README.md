@@ -30,7 +30,7 @@ Wake, monitor, and power down your computer from Homey.
    ```
 1. Generate the app manifest
    ```bash
-   bun run prepare
+   bun run app:build
    ```
 1. Run the app
    ```bash
@@ -48,6 +48,7 @@ Wake, monitor, and power down your computer from Homey.
 ## Notes
 
 - Wake-on-LAN must be enabled in the computer BIOS or UEFI and operating system.
+- Windows: OpenSSH server must be installed and running.
 - The app marks the computer as online when SSH responds. If ping works but SSH does not, Homey shows the computer as on with a connectivity warning.
 - Linux and macOS shutdown uses `sudo shutdown -h now`, so the configured SSH account must be allowed to run that command.
 

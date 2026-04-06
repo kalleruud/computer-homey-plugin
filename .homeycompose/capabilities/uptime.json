@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
+  "type": "number",
+  "title": {
+    "en": "Uptime"
+  },
+  "desc": {
+    "en": "How long the computer has been running"
+  },
+  "icon": "/assets/icons/timer.svg",
+  "units": "min",
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "insights": true,
+  "min": 0,
+  "decimals": 0,
+  "$flow": {
+    "triggers": [
+      {
+        "id": "measure_uptime_changed",
+        "highlight": true,
+        "title": {
+          "en": "The uptime changed"
+        },
+        "tokens": [
+          {
+            "name": "measure_uptime",
+            "title": {
+              "en": "Minutes"
+            },
+            "type": "number",
+            "example": 10
+          }
+        ]
+      }
+    ]
+  }
+}

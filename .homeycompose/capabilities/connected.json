@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
+  "type": "boolean",
+  "title": {
+    "en": "Turned on"
+  },
+  "desc": {
+    "en": "Whether the computer is on or off"
+  },
+  "icon": "/assets/icons/zap.svg",
+  "getable": true,
+  "setable": false,
+  "uiQuickAction": true,
+  "insights": true,
+  "insightsTitleTrue": {
+    "en": "Turned on"
+  },
+  "insightsTitleFalse": {
+    "en": "Turned off"
+  },
+  "$flow": {
+    "triggers": [
+      {
+        "id": "onoff_true",
+        "highlight": true,
+        "title": {
+          "en": "Turned on"
+        }
+      },
+      {
+        "id": "onoff_false",
+        "highlight": true,
+        "title": {
+          "en": "Turned off"
+        }
+      }
+    ],
+    "conditions": [
+      {
+        "id": "on",
+        "title": {
+          "en": "Is turned !{{on|off}}"
+        }
+      }
+    ]
+  }
+}

@@ -8,12 +8,17 @@ on:
     paths:
       - .homeychangelog.json
 
+permissions:
+  contents: write
+
 jobs:
   main:
     name: Publish Homey App
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v5
         with:
@@ -21,6 +26,12 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Read app version
+        id: app_version
+        run: |
+          VERSION="$(node -p "require('./app.json').version")"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Publish Homey App
         id: publish
@@ -35,3 +46,19 @@ jobs:
       - name: URL
         run: |
           echo "Manage your app at ${{ steps.publish.outputs.url }}." >> $GITHUB_STEP_SUMMARY
+
+      - name: Tag commit & create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="v${{ steps.app_version.outputs.version }}"
+
+          if ! git ls-remote --exit-code --tags origin "$VERSION" >/dev/null 2>&1; then
+            git tag "$VERSION"
+            git push origin "refs/tags/$VERSION"
+          fi
+
+          if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release create "$VERSION" --title "$VERSION" --notes "" --generate-notes
+          fi

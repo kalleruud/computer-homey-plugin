@@ -2,6 +2,7 @@
   "extends": "@tsconfig/node16/tsconfig.json",
   "compilerOptions": {
     "allowJs": false,
+    "esModuleInterop": true,
 
     "strict": true,
     "skipLibCheck": true,
@@ -16,5 +17,6 @@
 
     "outDir": ".homeybuild/"
   },
-  "exclude": ["**/tests"]
+  "include": ["**/*.ts", "**/*.mts"],
+  "exclude": ["tests", "node_modules", ".homeybuild"]
 }

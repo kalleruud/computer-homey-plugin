@@ -5,7 +5,7 @@
   "class": "other",
   "platforms": ["local"],
   "connectivity": ["lan"],
-  "capabilities": ["onoff", "alarm_connectivity"],
+  "capabilities": ["connected", "poweron", "poweroff", "uptime"],
   "icon": "/drivers/computer/assets/icon.svg",
   "images": {
     "small": "/drivers/computer/assets/images/computer@75px.jpg",

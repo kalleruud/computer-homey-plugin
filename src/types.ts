@@ -1,4 +1,5 @@
 import Homey from 'homey'
+import { REQUIRED_CAPABILITIES } from './constants.js'
 
 export type TargetOs = 'windows' | 'linux' | 'macos'
 
@@ -6,9 +7,7 @@ export type DeviceSettingsEvent = Parameters<
   typeof Homey.Device.prototype.onSettings
 >[0]
 
-export type RawDeviceSettings = ReturnType<Homey.Device['getSettings']>
-
-export type ComputerSettings = {
+export type ComputerDriverSettings = {
   ipAddress: string
   macAddress: string
   pollIntervalSeconds: number
@@ -19,4 +18,9 @@ export type ComputerSettings = {
   wolBroadcastAddress: string
 }
 
-export type Translate = (key: string) => string
+export type Capability = (typeof REQUIRED_CAPABILITIES)[number]
+
+export type FlowComputerDevice = Homey.Device & {
+  startComputer(): Promise<void>
+  shutdownComputer(): Promise<void>
+}

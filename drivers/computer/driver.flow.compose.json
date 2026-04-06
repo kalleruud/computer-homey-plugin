@@ -1,21 +1,70 @@
 {
-  "actions": [
+  "triggers": [
     {
-      "id": "start_computer",
+      "id": "computer_turned_on",
       "title": {
-        "en": "Start computer"
+        "en": "Turned on"
       },
       "hint": {
-        "en": "Sends a Wake-on-LAN packet to the selected computer."
+        "en": "Triggers when this computer turns on."
       }
     },
     {
-      "id": "shutdown_computer",
+      "id": "computer_turned_off",
       "title": {
-        "en": "Shut down computer"
+        "en": "Turned off"
       },
       "hint": {
-        "en": "Connects over SSH and runs the configured shutdown command."
+        "en": "Triggers when this computer turns off."
+      }
+    },
+    {
+      "id": "computer_uptime_changed",
+      "title": {
+        "en": "Uptime changed"
+      },
+      "hint": {
+        "en": "Triggers when this computer's uptime changes."
+      },
+      "tokens": [
+        {
+          "name": "uptime",
+          "type": "number",
+          "title": {
+            "en": "Uptime"
+          }
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "id": "computer_is_on",
+      "title": {
+        "en": "It !{{is on|is off}}"
+      },
+      "hint": {
+        "en": "Checks whether this computer is on."
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "computer_turn_on",
+      "title": {
+        "en": "Turn on"
+      },
+      "hint": {
+        "en": "Turns this computer on with Wake-on-LAN."
+      }
+    },
+    {
+      "id": "computer_turn_off",
+      "title": {
+        "en": "Turn off"
+      },
+      "hint": {
+        "en": "Turns this computer off over SSH."
       }
     }
   ]

@@ -1,16 +1,35 @@
 import Homey from 'homey'
+import { startPolling, stopPolling } from '../../src/computer/connected.js'
+import { shutdownComputerOverSsh as shutdownComputer } from '../../src/computer/poweroff.js'
+import { sendWakeOnLan } from '../../src/computer/poweron.js'
 import {
-  onInit,
-  onSettings,
-  shutdownComputer,
-  startComputer,
-  stopPolling,
-} from './device/controller.mjs'
-import type { DeviceSettingsEvent } from './device/types.mjs'
+  assertCanShutdown,
+  assertCanWake,
+  getComputerSettings,
+} from '../../src/computer/settings.js'
+import { ensureCapabilities } from '../../src/lib.js'
+import type { Capability, DeviceSettingsEvent } from '../../src/types.js'
 
 export default class ComputerDevice extends Homey.Device {
   override async onInit() {
-    await onInit(this)
+    this.log('Computer device has been initialized')
+    await ensureCapabilities(this)
+
+    this.registerCapabilityListener(
+      'poweron' satisfies Capability,
+      async () => {
+        await this.startComputer()
+      }
+    )
+
+    this.registerCapabilityListener(
+      'poweroff' satisfies Capability,
+      async () => {
+        await this.shutdownComputer()
+      }
+    )
+
+    await startPolling(this)
   }
 
   override onAdded() {
@@ -18,7 +37,8 @@ export default class ComputerDevice extends Homey.Device {
   }
 
   override async onSettings(event: DeviceSettingsEvent) {
-    return onSettings(this, event)
+    this.log('Computer settings changed', event.changedKeys)
+    await startPolling(this)
   }
 
   override onRenamed(name: string) {
@@ -26,19 +46,36 @@ export default class ComputerDevice extends Homey.Device {
   }
 
   override onDeleted() {
-    stopPolling(this)
     this.log('Computer device has been deleted')
+    stopPolling(this)
   }
 
   override async onUninit() {
+    this.log('Computer device has been uninitialized')
     stopPolling(this)
   }
 
   async startComputer() {
-    await startComputer(this)
+    const settings = getComputerSettings(this.getSettings())
+    assertCanWake(settings)
+
+    try {
+      await sendWakeOnLan(settings)
+    } catch (error) {
+      this.error('Failed to send a Wake-on-LAN packet', error)
+      throw new Error('Failed to send the Wake-on-LAN packet.')
+    }
   }
 
   async shutdownComputer() {
-    await shutdownComputer(this)
+    const settings = getComputerSettings(this.getSettings())
+    assertCanShutdown(settings)
+
+    try {
+      await shutdownComputer(settings)
+    } catch (error) {
+      this.error('Failed to shut down the computer over SSH', error)
+      throw new Error('Failed to shut down the computer over SSH.')
+    }
   }
 }
