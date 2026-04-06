@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
+  "type": "boolean",
+  "title": {
+    "en": "Is on"
+  },
+  "desc": {
+    "en": "Whether the computer is on or off"
+  },
+  "getable": true,
+  "setable": false,
+  "icon": "./assets/connected.svg",
+  "uiComponent": "toggle",
+  "uiQuickAction": true
+}

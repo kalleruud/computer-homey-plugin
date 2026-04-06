@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
+  "type": "number",
+  "title": {
+    "en": "Uptime"
+  },
+  "desc": {
+    "en": "How long the computer has been running"
+  },
+  "units": "s",
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "insights": true,
+  "min": 0,
+  "decimals": 0,
+  "icon": "./assets/cpu.svg"
+}

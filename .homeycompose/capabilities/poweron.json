@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
+  "title": {
+    "en": "Turn on"
+  },
+  "desc": {
+    "en": "Turns the computer on"
+  },
+  "type": "boolean",
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "uiQuickAction": true,
+  "$flow": {
+    "actions": [
+      {
+        "id": "press",
+        "title": {
+          "en": "Turn on the computer"
+        }
+      }
+    ]
+  }
+}

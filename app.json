@@ -49,7 +49,9 @@
         "lan"
       ],
       "capabilities": [
-        "onoff",
+        "connected",
+        "button_turn_on",
+        "button_turn_off",
         "alarm_connectivity"
       ],
       "icon": "/drivers/computer/assets/icon.svg",
@@ -215,5 +217,34 @@
         }
       ]
     }
-  ]
+  ],
+  "capabilities": {
+    "button_turn_off": {
+      "type": "boolean",
+      "title": {
+        "en": "Turn off"
+      },
+      "uiComponent": "button",
+      "setable": true,
+      "getable": false
+    },
+    "button_turn_on": {
+      "type": "boolean",
+      "title": {
+        "en": "Turn on"
+      },
+      "uiComponent": "button",
+      "setable": true,
+      "getable": false
+    },
+    "connected": {
+      "type": "boolean",
+      "title": {
+        "en": "Connection state"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    }
+  }
 }
