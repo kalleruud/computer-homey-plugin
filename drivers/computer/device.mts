@@ -1,3 +1,8 @@
+import {
+  scheduleRefresh,
+  startPolling,
+  stopPolling,
+} from '@src/computer/connected.js'
 import { shutdownComputerOverSsh } from '@src/computer/poweroff.js'
 import { sendWakeOnLan } from '@src/computer/poweron.js'
 import {
@@ -5,20 +10,14 @@ import {
   assertCanWake,
   getComputerSettings,
 } from '@src/computer/settings.js'
+import { ensureCapabilities } from '@src/device.js'
+import { DeviceSettingsEvent } from '@src/types.js'
 import Homey from 'homey'
-import {
-  ensureRequiredCapabilities,
-  scheduleRefresh,
-  startPolling,
-  stopPolling,
-} from '../../src/computer/controller.js'
-import { DeviceSettingsEvent } from '../../src/types.js'
 
 export default class ComputerDevice extends Homey.Device {
   override async onInit() {
     this.log('Computer device has been initialized')
-
-    await ensureRequiredCapabilities(this)
+    await ensureCapabilities(this)
 
     this.registerCapabilityListener('poweron', async () => {
       await this.startComputer()

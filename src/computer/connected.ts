@@ -1,16 +1,74 @@
+import { debugLog, getDeviceState } from '@src/device.js'
+import type { Device } from 'homey'
 import { execFile } from 'node:child_process'
 import net from 'node:net'
-
-import { POLL_TIMEOUT_MS, SSH_UNAVAILABLE_WARNING } from '../constants.js'
+import {
+  POLL_TIMEOUT_MS,
+  STARTUP_REFRESH_DELAY_MS as REFRESH_DELAY_MS,
+  SSH_UNAVAILABLE_WARNING,
+} from '../constants.js'
 import { ComputerDriverSettings } from '../types.js'
-import { getProbeValidationError } from './settings.js'
+import {
+  getComputerSettings,
+  getPollIntervalMs,
+  getProbeValidationError,
+} from './settings.js'
+import { getUptimeSeconds } from './uptime.js'
 
 type ComputerConnectionState = {
   isOnline: boolean
   warning?: string
 }
 
-export async function pollComputerConnectionState(
+export function stopPolling(device: Device) {
+  const state = getDeviceState(device)
+
+  if (state.pollIntervalTimer) {
+    device.homey.clearInterval(state.pollIntervalTimer)
+    state.pollIntervalTimer = undefined
+  }
+
+  if (state.refreshTimer) {
+    device.homey.clearTimeout(state.refreshTimer)
+    state.refreshTimer = undefined
+  }
+}
+
+export async function startPolling(device: Device) {
+  stopPolling(device)
+
+  const state = getDeviceState(device)
+  const settings = getComputerSettings(device.getSettings())
+  const intervalMs = getPollIntervalMs(settings)
+
+  debugLog(device, `Starting computer status polling every ${intervalMs} ms`)
+
+  state.pollIntervalTimer = device.homey.setInterval(() => {
+    debugLog(device, 'Polling timer fired')
+    void refreshComputerState(device)
+  }, intervalMs)
+
+  debugLog(device, 'Running initial poll immediately after startup')
+  await refreshComputerState(device)
+}
+
+export function scheduleRefresh(device: Device) {
+  const state = getDeviceState(device)
+
+  if (state.refreshTimer) {
+    device.homey.clearTimeout(state.refreshTimer)
+  }
+
+  debugLog(device, `Scheduling follow-up poll in ${REFRESH_DELAY_MS} ms`)
+
+  state.refreshTimer = device.homey.setTimeout(() => {
+    getDeviceState(device).refreshTimer = undefined
+    debugLog(device, 'Scheduled follow-up poll fired')
+    void refreshComputerState(device)
+  }, REFRESH_DELAY_MS)
+}
+
+async function pollComputerConnectionState(
   settings: ComputerDriverSettings,
   onMissingPingCommand: () => void
 ): Promise<ComputerConnectionState> {
@@ -46,6 +104,76 @@ export async function pollComputerConnectionState(
   return {
     isOnline: false,
   }
+}
+
+async function refreshComputerState(device: Device): Promise<boolean> {
+  const state = getDeviceState(device)
+  if (state.pollInFlight) {
+    debugLog(device, 'Skipping poll because another poll is already running')
+    return device.getCapabilityValue('connected') === true
+  }
+
+  state.pollInFlight = true
+
+  try {
+    const settings = getComputerSettings(device.getSettings())
+
+    debugLog(
+      device,
+      `Polling computer status for ${settings.ipAddress || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
+    )
+
+    const connectionState = await pollComputerConnectionState(settings, () => {
+      if (state.pingCommandMissingLogged) {
+        return
+      }
+
+      state.pingCommandMissingLogged = true
+      device.error('Ping command is not available for fallback status checks')
+    })
+
+    return await applyConnectionState(device, connectionState)
+  } catch (error) {
+    device.error('Failed to poll the computer status', error)
+    return device.getCapabilityValue('connected') === true
+  } finally {
+    state.pollInFlight = false
+  }
+}
+
+async function applyConnectionState(
+  device: Device,
+  connectionState: Awaited<ReturnType<typeof pollComputerConnectionState>>
+): Promise<boolean> {
+  const { isOnline, warning } = connectionState
+
+  debugLog(
+    device,
+    `Poll result: online=${isOnline.toString()} warning=${warning ?? 'none'}`
+  )
+
+  if (warning) {
+    await device.setWarning(warning)
+  } else {
+    await device.unsetWarning()
+  }
+
+  const uptimeSeconds = getUptimeSeconds(device, isOnline)
+
+  if (device.getCapabilityValue('connected') !== isOnline) {
+    await device.setCapabilityValue('connected', isOnline)
+  }
+
+  if (device.getCapabilityValue('uptime') !== uptimeSeconds) {
+    await device.setCapabilityValue('uptime', uptimeSeconds)
+  }
+
+  debugLog(
+    device,
+    `Applied capability state: connected=${isOnline.toString()} uptime=${uptimeSeconds.toString()}`
+  )
+
+  return isOnline
 }
 
 async function probeTcpPort(host: string, port: number): Promise<boolean> {

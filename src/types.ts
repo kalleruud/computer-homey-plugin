@@ -1,4 +1,5 @@
 import Homey from 'homey'
+import { REQUIRED_CAPABILITIES } from './constants'
 
 export type TargetOs = 'windows' | 'linux' | 'macos'
 
@@ -16,3 +17,5 @@ export type ComputerDriverSettings = {
   sshPort: number
   wolBroadcastAddress: string
 }
+
+export type Capability = (typeof REQUIRED_CAPABILITIES)[number]

@@ -21,3 +21,10 @@ export const SHUTDOWN_COMMANDS = {
 } as const
 
 export const IS_DEBUG = process.env.DEBUG === '1'
+
+export const REQUIRED_CAPABILITIES = [
+  'connected',
+  'poweron',
+  'poweroff',
+  'uptime',
+] as const
