@@ -7,6 +7,7 @@
   "desc": {
     "en": "Whether the computer is on or off"
   },
+  "icon": "/assets/icons/zap.svg",
   "getable": true,
   "setable": false,
   "uiQuickAction": true,
@@ -17,5 +18,30 @@
   "insightsTitleFalse": {
     "en": "Turned off"
   },
-  "icon": "/assets/icons/zap.svg"
+  "$flow": {
+    "triggers": [
+      {
+        "id": "onoff_true",
+        "highlight": true,
+        "title": {
+          "en": "Turned on"
+        }
+      },
+      {
+        "id": "onoff_false",
+        "highlight": true,
+        "title": {
+          "en": "Turned off"
+        }
+      }
+    ],
+    "conditions": [
+      {
+        "id": "on",
+        "title": {
+          "en": "Is turned !{{on|off}}"
+        }
+      }
+    ]
+  }
 }
