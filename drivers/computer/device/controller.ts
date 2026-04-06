@@ -1,18 +1,17 @@
 import Homey from 'homey'
-
 import {
   SHUTDOWN_REFRESH_DELAY_MS,
   STARTUP_REFRESH_DELAY_MS,
-} from '../constants.js'
+} from '../constants'
 import {
   assertCanShutdown,
   assertCanWake,
   getProbeValidationError,
-} from './device-validation.mjs'
-import { executeShutdown, sendWakeOnLan } from './power.mjs'
-import { probePing, probeTcpPort } from './probes.mjs'
-import { getComputerSettings, getPollIntervalMs } from './settings.mjs'
-import type { DeviceSettingsEvent } from './types.mjs'
+} from './device-validation'
+import { executeShutdown, sendWakeOnLan } from './power'
+import { probePing, probeTcpPort } from './probes'
+import { getComputerSettings, getPollIntervalMs } from './settings'
+import type { DeviceSettingsEvent } from './types'
 
 type DeviceState = {
   pollIntervalTimer?: NodeJS.Timeout

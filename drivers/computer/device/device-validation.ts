@@ -1,7 +1,7 @@
 import net from 'node:net'
 
-import { SHUTDOWN_COMMANDS } from '../constants.js'
-import type { ComputerSettings, TargetOs, Translate } from './types.mjs'
+import { SHUTDOWN_COMMANDS } from '../constants'
+import type { ComputerSettings, TargetOs, Translate } from './types'
 
 export function getProbeValidationError(
   settings: ComputerSettings,

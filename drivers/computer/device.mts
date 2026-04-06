@@ -5,8 +5,8 @@ import {
   shutdownComputer,
   startComputer,
   stopPolling,
-} from './device/controller.mjs'
-import type { DeviceSettingsEvent } from './device/types.mjs'
+} from './device/controller.js'
+import type { DeviceSettingsEvent } from './device/types.js'
 
 export default class ComputerDevice extends Homey.Device {
   override async onInit() {

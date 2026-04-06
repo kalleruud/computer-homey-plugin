@@ -13,7 +13,7 @@
   "description": {
     "en": "Wake, monitor, and power down your computer from Homey."
   },
-  "brandColor": "#023047",
+  "brandColor": "#CE5939",
   "category": [
     "tools"
   ],
@@ -31,46 +31,10 @@
     "large": "/assets/images/power_button@500px.jpg",
     "xlarge": "/assets/images/power_button@1000px.jpg"
   },
-  "support": "mailto:ole@kallerud.no",
+  "support": "mailto:homey@kallerud.no",
   "author": {
-    "email": "ole@kallerud.no",
+    "email": "homey@kallerud.no",
     "name": "Ole Kallerud"
-  },
-  "flow": {
-    "actions": [
-      {
-        "id": "start_computer",
-        "title": {
-          "en": "Start computer"
-        },
-        "hint": {
-          "en": "Sends a Wake-on-LAN packet to the selected computer."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=computer"
-          }
-        ]
-      },
-      {
-        "id": "shutdown_computer",
-        "title": {
-          "en": "Shut down computer"
-        },
-        "hint": {
-          "en": "Connects over SSH and runs the configured shutdown command."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=computer"
-          }
-        ]
-      }
-    ]
   },
   "drivers": [
     {

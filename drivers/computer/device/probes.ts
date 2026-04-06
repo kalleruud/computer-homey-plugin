@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import net from 'node:net'
 
-import { POLL_TIMEOUT_MS } from '../constants.js'
+import { POLL_TIMEOUT_MS } from '../constants'
 
 export async function probeTcpPort(host: string, port: number) {
   return new Promise<boolean>(resolve => {

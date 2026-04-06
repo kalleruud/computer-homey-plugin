@@ -5,8 +5,12 @@
     "dev": "bun gen && bunx homey app run",
     "gen": "bunx homey app build",
     "build": "tsc",
-    "check": "bunx homey app validate && eslint . --cache && prettier -c . && bunx tsc --noEmit && bunx --bun knip",
+    "check": "bunx homey app validate --level verified && eslint . --cache && prettier -c . && bunx tsc --noEmit && bunx --bun knip",
     "fix": "eslint . --cache --fix && bunx --bun knip --fix --allow-remove-files && prettier -w ."
+  },
+  "dependencies": {
+    "@types/ssh2": "^1.15.5",
+    "ssh2": "^1.17.0"
   },
   "devDependencies": {
     "@eslint/js": "^9",
@@ -16,11 +20,10 @@
     "@types/node": "^25",
     "eslint": "^9",
     "eslint-plugin-homey-app": "^1",
-    "globals": "^17",
     "homey": "^4",
     "knip": "^6",
     "prettier": "^3",
-    "prettier-plugin-organize-imports": "^4.3.0",
+    "prettier-plugin-organize-imports": "^4",
     "typescript": "^6",
     "typescript-eslint": "^8"
   },
@@ -36,9 +39,5 @@
     "plugins": [
       "prettier-plugin-organize-imports"
     ]
-  },
-  "dependencies": {
-    "@types/ssh2": "^1.15.5",
-    "ssh2": "^1.17.0"
   }
 }

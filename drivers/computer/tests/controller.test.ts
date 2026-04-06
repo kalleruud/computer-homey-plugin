@@ -53,7 +53,9 @@ function isIpv4Address(value: string) {
 class FakeSocket {
   readonly listeners = new Map<string, () => void>()
 
-  setTimeout() {}
+  setTimeout() {
+    // Needed by probe interface.
+  }
 
   once(event: string, listener: () => void) {
     this.listeners.set(event, listener)
@@ -72,7 +74,9 @@ class FakeSocket {
     })
   }
 
-  destroy() {}
+  destroy() {
+    // Needed by probe cleanup.
+  }
 }
 
 class FakeDgramSocket {
@@ -84,7 +88,9 @@ class FakeDgramSocket {
     callback()
   }
 
-  setBroadcast() {}
+  setBroadcast() {
+    // Needed by WoL flow.
+  }
 
   send(
     _packet: Buffer,
@@ -96,7 +102,9 @@ class FakeDgramSocket {
     callback(null)
   }
 
-  close() {}
+  close() {
+    // Needed by WoL flow.
+  }
 }
 
 class FakeEmitter {
@@ -141,7 +149,9 @@ class FakeEmitter {
 class FakeClientChannel extends FakeEmitter {
   readonly stderr = new FakeEmitter()
 
-  write() {}
+  write() {
+    // Needed by SSH stream API.
+  }
 }
 
 class FakeSshClient extends FakeEmitter {
@@ -184,7 +194,9 @@ class FakeSshClient extends FakeEmitter {
     })
   }
 
-  end() {}
+  end() {
+    // Needed by SSH client API.
+  }
 }
 
 describe('computer controller', () => {
@@ -232,16 +244,15 @@ describe('computer controller', () => {
   })
 
   it('initializes the device and starts online polling', async () => {
-    const { onInit } = await importFresh<
-      typeof import('../device/controller.mts')
-    >('../device/controller.mts')
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
     const state = createMockDevice({
       capabilities: {
         onoff: false,
       },
     })
 
-    await onInit(state.device as never)
+    await ComputerDevice.prototype.onInit.call(state.device as never)
     await flushAsync()
 
     expect(state.device.addCapability).toHaveBeenCalledWith(
@@ -257,9 +268,8 @@ describe('computer controller', () => {
   })
 
   it('skips overlapping polls and runs scheduled refresh callbacks', async () => {
-    const controller = await importFresh<
-      typeof import('../device/controller.mts')
-    >('../device/controller.mts')
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
     const state = createMockDevice({
       capabilities: {
         onoff: false,
@@ -267,13 +277,13 @@ describe('computer controller', () => {
       },
     })
 
-    await controller.onInit(state.device as never)
+    await ComputerDevice.prototype.onInit.call(state.device as never)
     state.intervalTimers[0]?.callback()
     await flushAsync(10)
 
     expect(state.capabilities.get('onoff')).toBe(true)
 
-    await controller.startComputer(state.device as never)
+    await ComputerDevice.prototype.startComputer.call(state.device as never)
     state.timeoutTimers.at(-1)?.callback()
     await flushAsync(10)
 
@@ -281,9 +291,8 @@ describe('computer controller', () => {
   })
 
   it('applies validation warnings and ping fallback results', async () => {
-    const controller = await importFresh<
-      typeof import('../device/controller.mts')
-    >('../device/controller.mts')
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
 
     const invalidState = createMockDevice({
       capabilities: {
@@ -296,7 +305,7 @@ describe('computer controller', () => {
     })
 
     await expect(
-      controller.onSettings(invalidState.device as never, {
+      ComputerDevice.prototype.onSettings.call(invalidState.device as never, {
         changedKeys: ['ip_address'],
         newSettings: {},
         oldSettings: {},
@@ -315,7 +324,7 @@ describe('computer controller', () => {
       },
     })
 
-    await controller.onInit(fallbackState.device as never)
+    await ComputerDevice.prototype.onInit.call(fallbackState.device as never)
     await flushAsync()
 
     socketMode = 'error'
@@ -330,9 +339,8 @@ describe('computer controller', () => {
   })
 
   it('handles offline probes, poll errors, and refresh scheduling', async () => {
-    const controller = await importFresh<
-      typeof import('../device/controller.mts')
-    >('../device/controller.mts')
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
     const state = createMockDevice({
       capabilities: {
         onoff: true,
@@ -340,7 +348,7 @@ describe('computer controller', () => {
       },
     })
 
-    await controller.onInit(state.device as never)
+    await ComputerDevice.prototype.onInit.call(state.device as never)
     await flushAsync()
 
     socketMode = 'error'
@@ -373,8 +381,28 @@ describe('computer controller', () => {
     expect(state.timeoutTimers[0]?.delayMs).toBe(STARTUP_REFRESH_DELAY_MS)
     expect(state.timeoutTimers[1]?.delayMs).toBe(SHUTDOWN_REFRESH_DELAY_MS)
 
-    controller.stopPolling(state.device as never)
+    ComputerDevice.prototype.onDeleted.call(state.device as never)
     expect(state.homey.clearInterval).toHaveBeenCalled()
     expect(state.homey.clearTimeout).toHaveBeenCalled()
+  })
+
+  it('logs lifecycle events and supports explicit uninit polling stop', async () => {
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
+    const state = createMockDevice()
+
+    await ComputerDevice.prototype.onInit.call(state.device as never)
+    ComputerDevice.prototype.onAdded.call(state.device as never)
+    ComputerDevice.prototype.onRenamed.call(state.device as never, 'Office PC')
+    await ComputerDevice.prototype.onUninit.call(state.device as never)
+
+    expect(state.device.log).toHaveBeenCalledWith(
+      'Computer device has been added'
+    )
+    expect(state.device.log).toHaveBeenCalledWith(
+      'Computer device was renamed to',
+      'Office PC'
+    )
+    expect(state.homey.clearInterval).toHaveBeenCalled()
   })
 })

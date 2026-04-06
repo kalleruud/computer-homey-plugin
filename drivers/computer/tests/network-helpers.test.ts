@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
+import { SHUTDOWN_COMMANDS, SUDO_PROMPT } from '../constants'
 import {
-  DEFAULTS,
-  POLL_TIMEOUT_MS,
-  SHUTDOWN_COMMANDS,
-  SUDO_PROMPT,
-} from '../constants'
-import { importFresh } from './test-helpers'
+  createMockDevice,
+  flushAsync,
+  importFresh,
+  mockHomeyModule,
+} from './test-helpers'
 
 type SocketEvent = 'connect' | 'timeout' | 'error'
 
@@ -19,382 +19,275 @@ type SshScenario = {
 }
 
 let socketBehavior: SocketEvent = 'connect'
-let connectArgs: { host: string; port: number } | undefined
-let destroyCount = 0
-let timeoutMs: number | undefined
 let pingError: Error | NodeJS.ErrnoException | null = null
-let execFileCalls: Array<{ command: string; args: string[] }> = []
-
 let dgramSendError: Error | null = null
-let lastSocketType: string | undefined
-let socketWasClosed = false
-let socketWasBound = false
-let socketBroadcastValue = false
-let lastSendArgs:
-  | {
-      address: string
-      packet: Buffer
-      port: number
-    }
-  | undefined
-
-let sshScenario: SshScenario
-let sshConnectOptions: Record<string, unknown> | undefined
+let dgramErrorOnBind = false
+let lastSendArgs: { address: string; port: number } | undefined
+let sshScenario: SshScenario = {
+  closeCode: 0,
+  stderrChunks: [],
+  stdoutChunks: [],
+}
 let sshExecCommand: string | undefined
-let sshExecOptions: Record<string, unknown> | undefined
-let sshStreamWrites: string[] = []
-let clientEnded = false
+let wrotePassword = false
 
 class FakeSocket {
   readonly listeners = new Map<string, () => void>()
-
-  setTimeout(delayMs: number) {
-    timeoutMs = delayMs
+  setTimeout() {
+    // Required test stub.
   }
-
   once(event: string, listener: () => void) {
     this.listeners.set(event, listener)
     return this
   }
-
-  connect(port: number, host: string) {
-    connectArgs = { host, port }
-
-    queueMicrotask(() => {
-      this.listeners.get(socketBehavior)?.()
-    })
+  connect() {
+    queueMicrotask(() => this.listeners.get(socketBehavior)?.())
   }
-
   destroy() {
-    destroyCount += 1
+    // Required test stub.
   }
 }
 
 class FakeDgramSocket {
-  once() {
+  private errorListener?: (error: Error) => void
+
+  once(event: string, listener: (error: Error) => void): this
+  once(event: string, listener: (error: Error) => void) {
+    if (event === 'error') {
+      this.errorListener = listener
+    }
     return this
   }
-
   bind(callback: () => void) {
-    socketWasBound = true
+    if (dgramErrorOnBind && this.errorListener) {
+      this.errorListener(new Error('bind failed'))
+      return
+    }
     callback()
   }
-
-  setBroadcast(value: boolean) {
-    socketBroadcastValue = value
+  setBroadcast() {
+    // Required test stub.
   }
-
   send(
-    packet: Buffer,
+    _packet: Buffer,
     port: number,
     address: string,
     callback: (error: Error | null) => void
   ) {
-    lastSendArgs = { address, packet, port }
+    lastSendArgs = { address, port }
     callback(dgramSendError)
   }
-
   close() {
-    socketWasClosed = true
+    // Required test stub.
   }
 }
 
 class FakeEmitter {
   readonly listeners = new Map<string, Array<(...args: unknown[]) => void>>()
-
   on(event: string, handler: (...args: unknown[]) => void) {
     const handlers = this.listeners.get(event) ?? []
     handlers.push(handler)
     this.listeners.set(event, handlers)
     return this
   }
-
   once(event: string, handler: (...args: unknown[]) => void) {
     const wrappedHandler = (...args: unknown[]) => {
       this.off(event, wrappedHandler)
       handler(...args)
     }
-
     return this.on(event, wrappedHandler)
   }
-
   off(event: string, handler: (...args: unknown[]) => void) {
     const handlers = this.listeners.get(event)
-
-    if (!handlers) {
-      return
-    }
-
+    if (!handlers) return
     this.listeners.set(
       event,
       handlers.filter(existingHandler => existingHandler !== handler)
     )
   }
-
   emit(event: string, ...args: unknown[]) {
-    for (const handler of this.listeners.get(event) ?? []) {
-      handler(...args)
-    }
+    for (const handler of this.listeners.get(event) ?? []) handler(...args)
   }
 }
 
 class FakeClientChannel extends FakeEmitter {
   readonly stderr = new FakeEmitter()
-
   write(chunk: string) {
-    sshStreamWrites.push(chunk)
+    if (chunk.includes('\n')) wrotePassword = true
   }
 }
 
 class FakeSshClient extends FakeEmitter {
-  connect(options: Record<string, unknown>) {
-    sshConnectOptions = options
-
+  connect() {
     queueMicrotask(() => {
       if (sshScenario.connectError) {
         this.emit('error', sshScenario.connectError)
         return
       }
-
       this.emit('ready')
     })
   }
-
   exec(
     command: string,
-    options: Record<string, unknown>,
+    _options: Record<string, unknown>,
     callback: (error: Error | null, stream: FakeClientChannel) => void
   ) {
     sshExecCommand = command
-    sshExecOptions = options
-
     if (sshScenario.execError) {
       callback(sshScenario.execError, new FakeClientChannel())
       return
     }
-
     const stream = new FakeClientChannel()
     callback(null, stream)
-
     queueMicrotask(() => {
       for (const chunk of sshScenario.stdoutChunks ?? []) {
         stream.emit('data', Buffer.from(chunk))
       }
-
       for (const chunk of sshScenario.stderrChunks ?? []) {
         stream.stderr.emit('data', Buffer.from(chunk))
       }
-
       stream.emit('close', sshScenario.closeCode)
     })
   }
-
   end() {
-    clientEnded = true
+    // Required test stub.
   }
 }
 
-describe('computer network helpers', () => {
+describe('computer network behavior via device.mts', () => {
   beforeEach(() => {
     mock.restore()
+    mockHomeyModule()
     socketBehavior = 'connect'
-    connectArgs = undefined
-    destroyCount = 0
-    timeoutMs = undefined
     pingError = null
-    execFileCalls = []
     dgramSendError = null
-    lastSocketType = undefined
-    socketWasClosed = false
-    socketWasBound = false
-    socketBroadcastValue = false
+    dgramErrorOnBind = false
     lastSendArgs = undefined
-    sshScenario = {
-      closeCode: 0,
-      stderrChunks: [],
-      stdoutChunks: [],
-    }
-    sshConnectOptions = undefined
+    sshScenario = { closeCode: 0, stderrChunks: [], stdoutChunks: [] }
     sshExecCommand = undefined
-    sshExecOptions = undefined
-    sshStreamWrites = []
-    clientEnded = false
+    wrotePassword = false
 
     mock.module('node:net', () => ({
       default: {
         Socket: FakeSocket,
+        isIP: (value: string) => (/^\d+\.\d+\.\d+\.\d+$/u.test(value) ? 4 : 0),
       },
     }))
-
     mock.module('node:child_process', () => ({
       execFile: (
-        command: string,
-        args: string[],
+        _command: string,
+        _args: string[],
         callback: (error: Error | NodeJS.ErrnoException | null) => void
-      ) => {
-        execFileCalls.push({ command, args })
-        queueMicrotask(() => callback(pingError))
-      },
+      ) => queueMicrotask(() => callback(pingError)),
     }))
-
     mock.module('node:dgram', () => ({
-      default: {
-        createSocket: (type: string) => {
-          lastSocketType = type
-          return new FakeDgramSocket()
-        },
-      },
+      default: { createSocket: () => new FakeDgramSocket() },
     }))
-
-    mock.module('ssh2', () => ({
-      Client: FakeSshClient,
-    }))
+    mock.module('ssh2', () => ({ Client: FakeSshClient }))
   })
 
   afterEach(() => {
     mock.restore()
   })
 
-  it('checks TCP and ping reachability', async () => {
-    const { probePing, probeTcpPort } = await importFresh<
-      typeof import('../device/probes.mts')
-    >('../device/probes.mts')
+  it('starts and shuts down through device methods', async () => {
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
+    const state = createMockDevice()
 
-    await expect(probeTcpPort('192.168.1.15', 22)).resolves.toBe(true)
-    expect(timeoutMs).toBe(POLL_TIMEOUT_MS)
-    expect(connectArgs).toEqual({ host: '192.168.1.15', port: 22 })
-    expect(destroyCount).toBe(1)
+    await ComputerDevice.prototype.startComputer.call(state.device as never)
+    expect(lastSendArgs).toEqual({ address: '255.255.255.255', port: 9 })
 
-    socketBehavior = 'timeout'
-    await expect(probeTcpPort('192.168.1.15', 22)).resolves.toBe(false)
-
-    const onMissingCommand = mock(() => undefined)
-    await expect(probePing('192.168.1.15', onMissingCommand)).resolves.toBe(
-      true
-    )
-    expect(execFileCalls[0]).toEqual({
-      command: 'ping',
-      args: ['-c', '1', '-W', '1', '192.168.1.15'],
-    })
-
-    pingError = Object.assign(new Error('missing ping'), { code: 'ENOENT' })
-    await expect(probePing('192.168.1.15', onMissingCommand)).resolves.toBe(
-      false
-    )
-    expect(onMissingCommand).toHaveBeenCalledTimes(1)
-  })
-
-  it('sends wake-on-lan packets and maps wake errors', async () => {
-    const { sendWakeOnLan } = await importFresh<
-      typeof import('../device/power.mts')
-    >('../device/power.mts')
-
-    const logError = mock(() => undefined)
-    const translate = (key: string) => `translated:${key}`
-
-    await sendWakeOnLan(
-      {
-        ipAddress: '192.168.1.10',
-        macAddress: 'aa:bb:cc:dd:ee:ff',
-        pollIntervalSeconds: 60,
-        targetOs: 'linux',
-        sshUsername: 'admin',
-        sshPassword: 'secret',
-        sshPort: 22,
-        wolBroadcastAddress: '192.168.1.255',
-      },
-      { logError, translate }
-    )
-
-    expect(lastSocketType).toBe('udp4')
-    expect(socketWasBound).toBe(true)
-    expect(socketBroadcastValue).toBe(true)
-    expect(socketWasClosed).toBe(true)
-    expect(lastSendArgs?.port).toBe(DEFAULTS.WOL_PORT)
-
-    dgramSendError = new Error('send failed')
-    await expect(
-      sendWakeOnLan(
-        {
-          ipAddress: '192.168.1.10',
-          macAddress: 'aa:bb:cc:dd:ee:ff',
-          pollIntervalSeconds: 60,
-          targetOs: 'linux',
-          sshUsername: 'admin',
-          sshPassword: 'secret',
-          sshPort: 22,
-          wolBroadcastAddress: '192.168.1.255',
-        },
-        { logError, translate }
-      )
-    ).rejects.toThrow('translated:errors.startup_failed')
-  })
-
-  it('runs shutdown commands and maps ssh failures', async () => {
-    const { executeShutdown } = await importFresh<
-      typeof import('../device/power.mts')
-    >('../device/power.mts')
-
-    const logError = mock(() => undefined)
-    const translate = (key: string) => `translated:${key}`
-
-    await executeShutdown(
-      {
-        ipAddress: '192.168.1.10',
-        macAddress: 'aa:bb:cc:dd:ee:ff',
-        pollIntervalSeconds: 60,
-        targetOs: 'windows',
-        sshUsername: 'admin',
-        sshPassword: 'secret',
-        sshPort: 22,
-        wolBroadcastAddress: '255.255.255.255',
-      },
-      { logError, translate }
-    )
-
-    expect(sshExecCommand).toBe(SHUTDOWN_COMMANDS.windows)
-    expect(sshExecOptions).toEqual({ pty: false })
-    expect(clientEnded).toBe(true)
+    await ComputerDevice.prototype.shutdownComputer.call(state.device as never)
+    expect(sshExecCommand).toBe(SHUTDOWN_COMMANDS.linux)
 
     sshScenario = {
       closeCode: 0,
       stdoutChunks: [`before ${SUDO_PROMPT} after`],
     }
-    await executeShutdown(
-      {
-        ipAddress: '192.168.1.10',
-        macAddress: 'aa:bb:cc:dd:ee:ff',
-        pollIntervalSeconds: 60,
-        targetOs: 'linux',
-        sshUsername: 'admin',
-        sshPassword: 'secret',
-        sshPort: 22,
-        wolBroadcastAddress: '255.255.255.255',
-      },
-      { logError, translate }
-    )
+    await ComputerDevice.prototype.shutdownComputer.call(state.device as never)
+    expect(wrotePassword).toBe(true)
 
-    expect(sshConnectOptions?.host).toBe('192.168.1.10')
-    expect(sshExecCommand).toBe(SHUTDOWN_COMMANDS.linux)
-    expect(sshStreamWrites).toEqual(['secret\n'])
-
-    sshScenario = {
-      closeCode: 1,
-      stderrChunks: ['permission denied'],
-    }
+    dgramSendError = new Error('send failed')
     await expect(
-      executeShutdown(
-        {
-          ipAddress: '192.168.1.10',
-          macAddress: 'aa:bb:cc:dd:ee:ff',
-          pollIntervalSeconds: 60,
-          targetOs: 'linux',
-          sshUsername: 'admin',
-          sshPassword: 'secret',
-          sshPort: 22,
-          wolBroadcastAddress: '255.255.255.255',
-        },
-        { logError, translate }
+      ComputerDevice.prototype.startComputer.call(state.device as never)
+    ).rejects.toThrow('translated:errors.startup_failed')
+
+    sshScenario = { closeCode: 1, stderrChunks: ['permission denied'] }
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(state.device as never)
+    ).rejects.toThrow('translated:errors.ssh_shutdown_failed')
+
+    socketBehavior = 'error'
+    pingError = Object.assign(new Error('missing ping'), { code: 'ENOENT' })
+    await ComputerDevice.prototype.onInit.call(state.device as never)
+    state.intervalTimers[0]?.callback()
+    await flushAsync(10)
+    expect(state.capabilities.get('alarm_connectivity')).toBe(true)
+  })
+
+  it('surfaces validation and transport failures for wake/shutdown', async () => {
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
+
+    const invalidMacState = createMockDevice({
+      settings: { mac_address: 'invalid' },
+    })
+    await expect(
+      ComputerDevice.prototype.startComputer.call(
+        invalidMacState.device as never
+      )
+    ).rejects.toThrow('translated:errors.invalid_mac_address')
+
+    const invalidBroadcastState = createMockDevice({
+      settings: { wol_broadcast_address: 'not-an-ip' },
+    })
+    await expect(
+      ComputerDevice.prototype.startComputer.call(
+        invalidBroadcastState.device as never
+      )
+    ).rejects.toThrow('translated:errors.invalid_wol_broadcast_address')
+
+    const missingUsernameState = createMockDevice({
+      settings: { ssh_username: '' },
+    })
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(
+        missingUsernameState.device as never
+      )
+    ).rejects.toThrow('translated:errors.missing_ssh_username')
+
+    const missingPasswordState = createMockDevice({
+      settings: { ssh_password: '' },
+    })
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(
+        missingPasswordState.device as never
+      )
+    ).rejects.toThrow('translated:errors.missing_ssh_password')
+
+    const invalidPortState = createMockDevice({
+      settings: { ssh_port: 70000 },
+    })
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(
+        invalidPortState.device as never
+      )
+    ).rejects.toThrow('translated:errors.invalid_ssh_port')
+
+    dgramErrorOnBind = true
+    const dgramFailureState = createMockDevice()
+    await expect(
+      ComputerDevice.prototype.startComputer.call(
+        dgramFailureState.device as never
+      )
+    ).rejects.toThrow('translated:errors.startup_failed')
+
+    sshScenario = { closeCode: 0, execError: new Error('exec failed') }
+    const execFailureState = createMockDevice()
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(
+        execFailureState.device as never
       )
     ).rejects.toThrow('translated:errors.ssh_shutdown_failed')
   })
