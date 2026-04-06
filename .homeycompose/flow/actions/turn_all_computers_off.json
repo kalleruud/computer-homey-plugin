@@ -1,0 +1,8 @@
+{
+  "title": {
+    "en": "Turn all computers off"
+  },
+  "hint": {
+    "en": "Turns all computers off over SSH."
+  }
+}

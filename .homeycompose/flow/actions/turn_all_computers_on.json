@@ -1,0 +1,8 @@
+{
+  "title": {
+    "en": "Turn all computers on"
+  },
+  "hint": {
+    "en": "Turns all computers on with Wake-on-LAN."
+  }
+}

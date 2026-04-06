@@ -39,6 +39,24 @@
   "flow": {
     "triggers": [
       {
+        "title": {
+          "en": "Any computer turned off"
+        },
+        "hint": {
+          "en": "Triggers when any computer turns off."
+        },
+        "id": "any_computer_turned_off"
+      },
+      {
+        "title": {
+          "en": "Any computer turned on"
+        },
+        "hint": {
+          "en": "Triggers when any computer turns on."
+        },
+        "id": "any_computer_turned_on"
+      },
+      {
         "id": "computer_turned_on",
         "title": {
           "en": "Turned on"
@@ -98,6 +116,24 @@
     ],
     "conditions": [
       {
+        "title": {
+          "en": "All computers !{{are on|are off}}"
+        },
+        "hint": {
+          "en": "Checks whether all computers are on."
+        },
+        "id": "all_computers_are_on"
+      },
+      {
+        "title": {
+          "en": "Any computer !{{is on|is off}}"
+        },
+        "hint": {
+          "en": "Checks whether any computer is on."
+        },
+        "id": "any_computer_is_on"
+      },
+      {
         "id": "computer_is_on",
         "title": {
           "en": "It !{{is on|is off}}"
@@ -115,6 +151,24 @@
       }
     ],
     "actions": [
+      {
+        "title": {
+          "en": "Turn all computers off"
+        },
+        "hint": {
+          "en": "Turns all computers off over SSH."
+        },
+        "id": "turn_all_computers_off"
+      },
+      {
+        "title": {
+          "en": "Turn all computers on"
+        },
+        "hint": {
+          "en": "Turns all computers on with Wake-on-LAN."
+        },
+        "id": "turn_all_computers_on"
+      },
       {
         "id": "computer_turn_on",
         "title": {
