@@ -1,5 +1,5 @@
 - Run `bun prepare` to generate the `app.json` file.
-- Always run `bun fix && bun check` to fix and check for errors. All errors must be fixed before committing.
+- Always run `bun check` to check for errors, then `bun fix` to auto-fix errors. All errors must be fixed before committing.
 - For files exporting a class extending Homey, use the `.mts` extension.
 
 - Tests must never import `.ts` files directly, wrappers are NOT allowed.
