@@ -17,31 +17,5 @@
   },
   "insightsTitleFalse": {
     "en": "Turned off"
-  },
-  "$flow": {
-    "triggers": [
-      {
-        "id": "onoff_true",
-        "highlight": true,
-        "title": {
-          "en": "Turned on"
-        }
-      },
-      {
-        "id": "onoff_false",
-        "highlight": true,
-        "title": {
-          "en": "Turned off"
-        }
-      }
-    ],
-    "conditions": [
-      {
-        "id": "on",
-        "title": {
-          "en": "Is turned !{{on|off}}"
-        }
-      }
-    ]
   }
 }
