@@ -21,6 +21,7 @@ type SshScenario = {
 let socketBehavior: SocketEvent = 'connect'
 let pingError: Error | NodeJS.ErrnoException | null = null
 let dgramSendError: Error | null = null
+let dgramErrorOnBind = false
 let lastSendArgs: { address: string; port: number } | undefined
 let sshScenario: SshScenario = {
   closeCode: 0,
@@ -44,10 +45,22 @@ class FakeSocket {
 }
 
 class FakeDgramSocket {
+  private errorListener?: (error: Error) => void
+
   once() {
     return this
   }
+  once(event: string, listener: (error: Error) => void) {
+    if (event === 'error') {
+      this.errorListener = listener
+    }
+    return this
+  }
   bind(callback: () => void) {
+    if (dgramErrorOnBind && this.errorListener) {
+      this.errorListener(new Error('bind failed'))
+      return
+    }
     callback()
   }
   setBroadcast() {}
@@ -140,6 +153,7 @@ describe('computer network behavior via device.mts', () => {
     socketBehavior = 'connect'
     pingError = null
     dgramSendError = null
+    dgramErrorOnBind = false
     lastSendArgs = undefined
     sshScenario = { closeCode: 0, stderrChunks: [], stdoutChunks: [] }
     sshExecCommand = undefined
@@ -200,5 +214,63 @@ describe('computer network behavior via device.mts', () => {
     state.intervalTimers[0]?.callback()
     await flushAsync(10)
     expect(state.capabilities.get('alarm_connectivity')).toBe(true)
+  })
+
+  it('surfaces validation and transport failures for wake/shutdown', async () => {
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
+
+    const invalidMacState = createMockDevice({
+      settings: { mac_address: 'invalid' },
+    })
+    await expect(
+      ComputerDevice.prototype.startComputer.call(invalidMacState.device as never)
+    ).rejects.toThrow('translated:errors.invalid_mac_address')
+
+    const invalidBroadcastState = createMockDevice({
+      settings: { wol_broadcast_address: 'not-an-ip' },
+    })
+    await expect(
+      ComputerDevice.prototype.startComputer.call(
+        invalidBroadcastState.device as never
+      )
+    ).rejects.toThrow('translated:errors.invalid_wol_broadcast_address')
+
+    const missingUsernameState = createMockDevice({
+      settings: { ssh_username: '' },
+    })
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(
+        missingUsernameState.device as never
+      )
+    ).rejects.toThrow('translated:errors.missing_ssh_username')
+
+    const missingPasswordState = createMockDevice({
+      settings: { ssh_password: '' },
+    })
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(
+        missingPasswordState.device as never
+      )
+    ).rejects.toThrow('translated:errors.missing_ssh_password')
+
+    const invalidPortState = createMockDevice({
+      settings: { ssh_port: 70000 },
+    })
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(invalidPortState.device as never)
+    ).rejects.toThrow('translated:errors.invalid_ssh_port')
+
+    dgramErrorOnBind = true
+    const dgramFailureState = createMockDevice()
+    await expect(
+      ComputerDevice.prototype.startComputer.call(dgramFailureState.device as never)
+    ).rejects.toThrow('translated:errors.startup_failed')
+
+    sshScenario = { closeCode: 0, execError: new Error('exec failed') }
+    const execFailureState = createMockDevice()
+    await expect(
+      ComputerDevice.prototype.shutdownComputer.call(execFailureState.device as never)
+    ).rejects.toThrow('translated:errors.ssh_shutdown_failed')
   })
 })

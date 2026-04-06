@@ -23,6 +23,6 @@
       "@src/*": ["./src/*"]
     }
   },
-  "include": ["**/*.{ts,mts}"],
+  "include": ["**/*.ts", "**/*.mts"],
   "exclude": ["**/tests**/*"]
 }
