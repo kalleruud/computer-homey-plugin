@@ -53,7 +53,9 @@ function isIpv4Address(value: string) {
 class FakeSocket {
   readonly listeners = new Map<string, () => void>()
 
-  setTimeout() {}
+  setTimeout() {
+    // Needed by probe interface.
+  }
 
   once(event: string, listener: () => void) {
     this.listeners.set(event, listener)
@@ -72,7 +74,9 @@ class FakeSocket {
     })
   }
 
-  destroy() {}
+  destroy() {
+    // Needed by probe cleanup.
+  }
 }
 
 class FakeDgramSocket {
@@ -84,7 +88,9 @@ class FakeDgramSocket {
     callback()
   }
 
-  setBroadcast() {}
+  setBroadcast() {
+    // Needed by WoL flow.
+  }
 
   send(
     _packet: Buffer,
@@ -96,7 +102,9 @@ class FakeDgramSocket {
     callback(null)
   }
 
-  close() {}
+  close() {
+    // Needed by WoL flow.
+  }
 }
 
 class FakeEmitter {
@@ -141,7 +149,9 @@ class FakeEmitter {
 class FakeClientChannel extends FakeEmitter {
   readonly stderr = new FakeEmitter()
 
-  write() {}
+  write() {
+    // Needed by SSH stream API.
+  }
 }
 
 class FakeSshClient extends FakeEmitter {
@@ -184,7 +194,9 @@ class FakeSshClient extends FakeEmitter {
     })
   }
 
-  end() {}
+  end() {
+    // Needed by SSH client API.
+  }
 }
 
 describe('computer controller', () => {

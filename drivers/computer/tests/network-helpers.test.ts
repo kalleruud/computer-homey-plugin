@@ -33,7 +33,9 @@ let wrotePassword = false
 
 class FakeSocket {
   readonly listeners = new Map<string, () => void>()
-  setTimeout() {}
+  setTimeout() {
+    // Required test stub.
+  }
   once(event: string, listener: () => void) {
     this.listeners.set(event, listener)
     return this
@@ -41,7 +43,9 @@ class FakeSocket {
   connect() {
     queueMicrotask(() => this.listeners.get(socketBehavior)?.())
   }
-  destroy() {}
+  destroy() {
+    // Required test stub.
+  }
 }
 
 class FakeDgramSocket {
@@ -61,7 +65,9 @@ class FakeDgramSocket {
     }
     callback()
   }
-  setBroadcast() {}
+  setBroadcast() {
+    // Required test stub.
+  }
   send(
     _packet: Buffer,
     port: number,
@@ -71,7 +77,9 @@ class FakeDgramSocket {
     lastSendArgs = { address, port }
     callback(dgramSendError)
   }
-  close() {}
+  close() {
+    // Required test stub.
+  }
 }
 
 class FakeEmitter {
@@ -141,7 +149,9 @@ class FakeSshClient extends FakeEmitter {
       stream.emit('close', sshScenario.closeCode)
     })
   }
-  end() {}
+  end() {
+    // Required test stub.
+  }
 }
 
 describe('computer network behavior via device.mts', () => {
