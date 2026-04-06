@@ -9,7 +9,7 @@ import {
   getPollIntervalMs,
   getProbeValidationError,
 } from './settings.js'
-import { getUptimeSeconds } from './uptime.js'
+import { getUptimeMinutes } from './uptime.js'
 
 type ComputerConnectionState = {
   isOnline: boolean
@@ -137,19 +137,19 @@ async function applyConnectionState(
     await device.unsetWarning()
   }
 
-  const uptimeSeconds = getUptimeSeconds(device, isOnline)
+  const uptimeMinutes = getUptimeMinutes(device, isOnline)
 
   if (device.getCapabilityValue('connected') !== isOnline) {
     await device.setCapabilityValue('connected', isOnline)
   }
 
-  if (device.getCapabilityValue('uptime') !== uptimeSeconds) {
-    await device.setCapabilityValue('uptime', uptimeSeconds)
+  if (device.getCapabilityValue('uptime') !== uptimeMinutes) {
+    await device.setCapabilityValue('uptime', uptimeMinutes)
   }
 
   debugLog(
     device,
-    `Applied capability state: connected=${isOnline.toString()} uptime=${uptimeSeconds.toString()}`
+    `Applied capability state: connected=${isOnline.toString()} uptime=${uptimeMinutes.toString()}`
   )
 
   return isOnline

@@ -1,7 +1,7 @@
 import type Homey from 'homey'
 import { getDeviceState } from '../lib.js'
 
-export function getUptimeSeconds(
+export function getUptimeMinutes(
   device: Homey.Device,
   isOnline: boolean
 ): number {
@@ -18,5 +18,5 @@ export function getUptimeSeconds(
     return 0
   }
 
-  return Math.max(0, Math.floor((now - state.onlineSinceAt) / 1000))
+  return Math.max(0, Math.floor((now - state.onlineSinceAt) / 60000))
 }

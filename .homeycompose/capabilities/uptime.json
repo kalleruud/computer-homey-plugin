@@ -7,7 +7,7 @@
   "desc": {
     "en": "How long the computer has been running"
   },
-  "units": "s",
+  "units": "min",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",
