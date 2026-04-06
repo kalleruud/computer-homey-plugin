@@ -16,5 +16,6 @@
   },
   "insightsTitleFalse": {
     "en": "Turned off"
-  }
+  },
+  "icon": "/assets/icons/zap.svg"
 }

@@ -20,5 +20,6 @@
         }
       }
     ]
-  }
+  },
+  "icon": "/assets/icons/power.svg"
 }
