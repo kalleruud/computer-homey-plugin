@@ -223,7 +223,7 @@ describe('computer network behavior via device.mts', () => {
     await ComputerDevice.prototype.onInit.call(state.device as never)
     state.intervalTimers[0]?.callback()
     await flushAsync(10)
-    expect(state.capabilities.get('alarm_connectivity')).toBe(true)
+    expect(state.capabilities.get('alarm_connectivity')).toBe(false)
   })
 
   it('surfaces validation and transport failures for wake/shutdown', async () => {

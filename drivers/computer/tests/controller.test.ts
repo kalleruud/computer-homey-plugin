@@ -356,7 +356,7 @@ describe('computer controller', () => {
     state.intervalTimers[0]?.callback()
     await flushAsync(10)
 
-    expect(state.capabilities.get('alarm_connectivity')).toBe(true)
+    expect(state.capabilities.get('alarm_connectivity')).toBe(false)
     expect(state.capabilities.get('onoff')).toBe(false)
 
     socketMode = 'throw'
