@@ -1,5 +1,5 @@
 import Homey from 'homey'
-import { REQUIRED_CAPABILITIES } from './constants'
+import { REQUIRED_CAPABILITIES } from './constants.js'
 
 export type TargetOs = 'windows' | 'linux' | 'macos'
 

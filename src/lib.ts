@@ -1,6 +1,6 @@
-import type { Device } from 'homey'
-import { IS_DEBUG, REQUIRED_CAPABILITIES } from './constants'
-import { Capability } from './types'
+import type Homey from 'homey'
+import { IS_DEBUG, REQUIRED_CAPABILITIES } from './constants.js'
+import type { Capability } from './types.js'
 
 type ComputerDeviceState = {
   pollInFlight: boolean
@@ -10,9 +10,9 @@ type ComputerDeviceState = {
   pingCommandMissingLogged: boolean
 }
 
-const deviceStates = new WeakMap<Device, ComputerDeviceState>()
+const deviceStates = new WeakMap<Homey.Device, ComputerDeviceState>()
 
-export function getDeviceState(device: Device): ComputerDeviceState {
+export function getDeviceState(device: Homey.Device): ComputerDeviceState {
   const existingState = deviceStates.get(device)
   if (existingState) {
     return existingState
@@ -28,7 +28,7 @@ export function getDeviceState(device: Device): ComputerDeviceState {
   return nextState
 }
 
-export async function ensureCapabilities(device: Device) {
+export async function ensureCapabilities(device: Homey.Device) {
   for (const capability of REQUIRED_CAPABILITIES) {
     if (!device.hasCapability(capability)) {
       await device.addCapability(capability)
@@ -43,7 +43,7 @@ export async function ensureCapabilities(device: Device) {
   }
 }
 
-export function debugLog(device: Device, message: string) {
+export function debugLog(device: Homey.Device, message: string) {
   if (IS_DEBUG) {
     device.log(message)
   }

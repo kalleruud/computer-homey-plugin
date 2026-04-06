@@ -2,6 +2,7 @@
   "extends": "@tsconfig/node16/tsconfig.json",
   "compilerOptions": {
     "allowJs": false,
+    "esModuleInterop": true,
 
     "strict": true,
     "skipLibCheck": true,
@@ -14,15 +15,8 @@
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false,
 
-    "outDir": ".homeybuild/",
-
-    "esModuleInterop": true,
-
-    "paths": {
-      "@drivers/*": ["./drivers/*"],
-      "@src/*": ["./src/*"]
-    }
+    "outDir": ".homeybuild/"
   },
   "include": ["**/*.ts", "**/*.mts"],
-  "exclude": ["**/tests**/*"]
+  "exclude": ["tests", "node_modules", ".homeybuild"]
 }

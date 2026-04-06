@@ -1,7 +1,10 @@
-import { getDeviceState } from '@src/device'
-import type { Device } from 'homey'
+import type Homey from 'homey'
+import { getDeviceState } from '../lib.js'
 
-export function getUptimeSeconds(device: Device, isOnline: boolean): number {
+export function getUptimeSeconds(
+  device: Homey.Device,
+  isOnline: boolean
+): number {
   const state = getDeviceState(device)
   const now = Date.now()
 

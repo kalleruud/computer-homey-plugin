@@ -1,5 +1,4 @@
-import { debugLog, getDeviceState } from '@src/device.js'
-import type { Device } from 'homey'
+import type Homey from 'homey'
 import { execFile } from 'node:child_process'
 import net from 'node:net'
 import {
@@ -7,6 +6,7 @@ import {
   STARTUP_REFRESH_DELAY_MS as REFRESH_DELAY_MS,
   SSH_UNAVAILABLE_WARNING,
 } from '../constants.js'
+import { debugLog, getDeviceState } from '../lib.js'
 import { ComputerDriverSettings } from '../types.js'
 import {
   getComputerSettings,
@@ -20,7 +20,7 @@ type ComputerConnectionState = {
   warning?: string
 }
 
-export function stopPolling(device: Device) {
+export function stopPolling(device: Homey.Device) {
   const state = getDeviceState(device)
 
   if (state.pollIntervalTimer) {
@@ -34,7 +34,7 @@ export function stopPolling(device: Device) {
   }
 }
 
-export async function startPolling(device: Device) {
+export async function startPolling(device: Homey.Device) {
   stopPolling(device)
 
   const state = getDeviceState(device)
@@ -44,7 +44,6 @@ export async function startPolling(device: Device) {
   debugLog(device, `Starting computer status polling every ${intervalMs} ms`)
 
   state.pollIntervalTimer = device.homey.setInterval(() => {
-    debugLog(device, 'Polling timer fired')
     void refreshComputerState(device)
   }, intervalMs)
 
@@ -52,7 +51,7 @@ export async function startPolling(device: Device) {
   await refreshComputerState(device)
 }
 
-export function scheduleRefresh(device: Device) {
+export function scheduleRefresh(device: Homey.Device) {
   const state = getDeviceState(device)
 
   if (state.refreshTimer) {
@@ -106,7 +105,7 @@ async function pollComputerConnectionState(
   }
 }
 
-async function refreshComputerState(device: Device): Promise<boolean> {
+async function refreshComputerState(device: Homey.Device): Promise<boolean> {
   const state = getDeviceState(device)
   if (state.pollInFlight) {
     debugLog(device, 'Skipping poll because another poll is already running')
@@ -142,7 +141,7 @@ async function refreshComputerState(device: Device): Promise<boolean> {
 }
 
 async function applyConnectionState(
-  device: Device,
+  device: Homey.Device,
   connectionState: Awaited<ReturnType<typeof pollComputerConnectionState>>
 ): Promise<boolean> {
   const { isOnline, warning } = connectionState

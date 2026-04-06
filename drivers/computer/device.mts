@@ -1,31 +1,37 @@
+import Homey from 'homey'
 import {
   scheduleRefresh,
   startPolling,
   stopPolling,
-} from '@src/computer/connected.js'
-import { shutdownComputerOverSsh } from '@src/computer/poweroff.js'
-import { sendWakeOnLan } from '@src/computer/poweron.js'
+} from '../../src/computer/connected.js'
+import { shutdownComputerOverSsh as shutdownComputer } from '../../src/computer/poweroff.js'
+import { sendWakeOnLan } from '../../src/computer/poweron.js'
 import {
   assertCanShutdown,
   assertCanWake,
   getComputerSettings,
-} from '@src/computer/settings.js'
-import { ensureCapabilities } from '@src/device.js'
-import { DeviceSettingsEvent } from '@src/types.js'
-import Homey from 'homey'
+} from '../../src/computer/settings.js'
+import { ensureCapabilities } from '../../src/lib.js'
+import type { Capability, DeviceSettingsEvent } from '../../src/types.js'
 
 export default class ComputerDevice extends Homey.Device {
   override async onInit() {
     this.log('Computer device has been initialized')
     await ensureCapabilities(this)
 
-    this.registerCapabilityListener('poweron', async () => {
-      await this.startComputer()
-    })
+    this.registerCapabilityListener(
+      'poweron' satisfies Capability,
+      async () => {
+        await this.startComputer()
+      }
+    )
 
-    this.registerCapabilityListener('poweroff', async () => {
-      await this.shutdownComputer()
-    })
+    this.registerCapabilityListener(
+      'poweron' satisfies Capability,
+      async () => {
+        await this.shutdownComputer()
+      }
+    )
 
     await startPolling(this)
   }
@@ -44,13 +50,14 @@ export default class ComputerDevice extends Homey.Device {
   }
 
   override onDeleted() {
-    stopPolling(this)
     this.log('Computer device has been deleted')
+    stopPolling(this)
   }
 
   override async onUninit() {
-    stopPolling(this)
     this.log('Computer device has been uninitialized')
+    stopPolling(this)
+    this.removeAllListeners()
   }
 
   async startComputer() {
@@ -72,7 +79,7 @@ export default class ComputerDevice extends Homey.Device {
     assertCanShutdown(settings)
 
     try {
-      await shutdownComputerOverSsh(settings)
+      await shutdownComputer(settings)
     } catch (error) {
       this.error('Failed to shut down the computer over SSH', error)
       throw new Error('Failed to shut down the computer over SSH.')
