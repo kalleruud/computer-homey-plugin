@@ -9,6 +9,7 @@ import {
   getPollIntervalMs,
 } from '../../src/computer/settings.js'
 import {
+  IS_DEBUG,
   SHUTDOWN_REFRESH_DELAY_MS,
   STARTUP_REFRESH_DELAY_MS,
 } from '../../src/constants.js'
@@ -113,6 +114,11 @@ export default class ComputerDevice extends Homey.Device {
     return nextState
   }
 
+  private debugPollLog(message: string) {
+    if (!IS_DEBUG) return
+    this.log(message)
+  }
+
   private async ensureRequiredCapabilities() {
     for (const capabilityId of REQUIRED_CAPABILITIES) {
       if (!this.hasCapability(capabilityId)) {
@@ -127,14 +133,14 @@ export default class ComputerDevice extends Homey.Device {
     const state = this.getDeviceState()
     const intervalMs = getPollIntervalMs(this.getComputerSettings())
 
-    this.log(`Starting computer status polling every ${intervalMs} ms`)
+    this.debugPollLog(`Starting computer status polling every ${intervalMs} ms`)
 
     state.pollIntervalTimer = this.homey.setInterval(() => {
-      this.log('Polling timer fired')
+      this.debugPollLog('Polling timer fired')
       this.refreshComputerState()
     }, intervalMs)
 
-    this.log('Running initial poll immediately after startup')
+    this.debugPollLog('Running initial poll immediately after startup')
     await this.refreshComputerState()
   }
 
@@ -159,11 +165,11 @@ export default class ComputerDevice extends Homey.Device {
       this.homey.clearTimeout(state.refreshTimer)
     }
 
-    this.log(`Scheduling follow-up poll in ${delayMs} ms`)
+    this.debugPollLog(`Scheduling follow-up poll in ${delayMs} ms`)
 
     state.refreshTimer = this.homey.setTimeout(() => {
       this.getDeviceState().refreshTimer = undefined
-      this.log('Scheduled follow-up poll fired')
+      this.debugPollLog('Scheduled follow-up poll fired')
       this.refreshComputerState()
     }, delayMs)
   }
@@ -171,7 +177,7 @@ export default class ComputerDevice extends Homey.Device {
   private async refreshComputerState(): Promise<boolean> {
     const state = this.getDeviceState()
     if (state.pollInFlight) {
-      this.log('Skipping poll because another poll is already running')
+      this.debugPollLog('Skipping poll because another poll is already running')
       return this.getCapabilityValue('connected') === true
     }
 
@@ -179,21 +185,18 @@ export default class ComputerDevice extends Homey.Device {
 
     try {
       const settings = this.getComputerSettings()
-      this.log(
+      this.debugPollLog(
         `Polling computer status for ${settings.ipAddress || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
       )
 
-      const nextState = await pollComputerConnectionState(
-        settings,
-        () => {
-          if (state.pingCommandMissingLogged) {
-            return
-          }
-
-          state.pingCommandMissingLogged = true
-          this.error('Ping command is not available for fallback status checks')
+      const nextState = await pollComputerConnectionState(settings, () => {
+        if (state.pingCommandMissingLogged) {
+          return
         }
-      )
+
+        state.pingCommandMissingLogged = true
+        this.error('Ping command is not available for fallback status checks')
+      })
 
       return await this.applyConnectionState(nextState)
     } catch (error) {
@@ -210,7 +213,7 @@ export default class ComputerDevice extends Homey.Device {
   }: Awaited<
     ReturnType<typeof pollComputerConnectionState>
   >): Promise<boolean> {
-    this.log(
+    this.debugPollLog(
       `Poll result: online=${isOnline.toString()} warning=${warning ?? 'none'}`
     )
 
@@ -247,7 +250,7 @@ export default class ComputerDevice extends Homey.Device {
       await this.setCapabilityValue('uptime', uptimeSeconds)
     }
 
-    this.log(
+    this.debugPollLog(
       `Applied capability state: connected=${isOnline.toString()} uptime=${uptimeSeconds.toString()}`
     )
 

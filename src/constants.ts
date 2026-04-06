@@ -20,3 +20,5 @@ export const SHUTDOWN_COMMANDS = {
   linux: `sudo -S -p "${SUDO_PROMPT}" shutdown -h now`,
   macos: `sudo -S -p "${SUDO_PROMPT}" shutdown -h now`,
 } as const
+
+export const IS_DEBUG = process.env.DEBUG === '1'
