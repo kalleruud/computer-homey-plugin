@@ -189,7 +189,7 @@ async function pollOnlineStatus(device: Homey.Device) {
     if (validationError) {
       return applyPollResult(device, {
         isOnline: false,
-        isConnectivityAlarmActive: true,
+        isConnectivityAlarmActive: false,
         warning: validationError,
       })
     }
@@ -220,7 +220,7 @@ async function pollOnlineStatus(device: Homey.Device) {
 
     return applyPollResult(device, {
       isOnline: false,
-      isConnectivityAlarmActive: true,
+      isConnectivityAlarmActive: false,
     })
   } catch (error) {
     device.error('Failed to poll the computer status', error)
