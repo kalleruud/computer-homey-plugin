@@ -325,6 +325,7 @@ class FakeDriver {
     flow: {
       getActionCard: (id: string) => this.getActionCard(id),
       getConditionCard: (id: string) => this.getConditionCard(id),
+      getTriggerCard: (id: string) => this.getTriggerCard(id),
       getDeviceTriggerCard: (id: string) => this.getDeviceTriggerCard(id),
     },
   }
@@ -382,6 +383,17 @@ class FakeDriver {
 
     const nextCard = this.createRunCard()
     this.conditionCards.set(id, nextCard)
+    return nextCard
+  }
+
+  getTriggerCard(id: string) {
+    const existingCard = this.triggerCards.get(id)
+    if (existingCard) {
+      return existingCard
+    }
+
+    const nextCard = this.createTriggerCard()
+    this.triggerCards.set(id, nextCard)
     return nextCard
   }
 
@@ -599,17 +611,23 @@ describe('ComputerDriver', () => {
     const driver = new ComputerDriver() as unknown as FakeDriver & {
       onInit: () => Promise<void>
     }
-    const startComputer = mock(async () => undefined)
-    const shutdownComputer = mock(async () => undefined)
+    const startOnComputer = mock(async () => undefined)
+    const shutdownOnComputer = mock(async () => undefined)
+    const startOffComputer = mock(async () => undefined)
+    const shutdownOffComputer = mock(async () => undefined)
     const onDevice = {
       getCapabilityValue: (capability: string) =>
         capability === 'connected' ? true : undefined,
-      shutdownComputer,
-      startComputer,
+      shutdownComputer: shutdownOnComputer,
+      startComputer: startOnComputer,
     }
     const offDevice = {
       getCapabilityValue: () => false,
+      shutdownComputer: shutdownOffComputer,
+      startComputer: startOffComputer,
     }
+
+    driver.devices = [onDevice, offDevice]
 
     await driver.onInit()
 
@@ -623,6 +641,23 @@ describe('ComputerDriver', () => {
         .get('computer_is_on')
         ?.runListener?.({ device: offDevice })
     ).toBe(false)
+    expect(
+      await driver.conditionCards.get('any_computer_is_on')?.runListener?.({})
+    ).toBe(true)
+    expect(
+      await driver.conditionCards.get('all_computers_are_on')?.runListener?.({})
+    ).toBe(false)
+
+    driver.devices = []
+
+    expect(
+      await driver.conditionCards.get('any_computer_is_on')?.runListener?.({})
+    ).toBe(false)
+    expect(
+      await driver.conditionCards.get('all_computers_are_on')?.runListener?.({})
+    ).toBe(false)
+
+    driver.devices = [onDevice, offDevice]
 
     await driver.actionCards
       .get('computer_turn_on')
@@ -630,9 +665,13 @@ describe('ComputerDriver', () => {
     await driver.actionCards
       .get('computer_turn_off')
       ?.runListener?.({ device: onDevice })
+    await driver.actionCards.get('turn_all_computers_on')?.runListener?.({})
+    await driver.actionCards.get('turn_all_computers_off')?.runListener?.({})
 
-    expect(startComputer).toHaveBeenCalledTimes(1)
-    expect(shutdownComputer).toHaveBeenCalledTimes(1)
+    expect(startOnComputer).toHaveBeenCalledTimes(2)
+    expect(shutdownOnComputer).toHaveBeenCalledTimes(2)
+    expect(startOffComputer).toHaveBeenCalledTimes(1)
+    expect(shutdownOffComputer).toHaveBeenCalledTimes(1)
   })
 
   it('triggers the registered flow cards through helper methods', async () => {
@@ -654,8 +693,14 @@ describe('ComputerDriver', () => {
     expect(driver.triggerCards.get('computer_turned_on')?.calls).toEqual([
       { device, tokens: undefined },
     ])
+    expect(driver.triggerCards.get('any_computer_turned_on')?.calls).toEqual([
+      { device: undefined, tokens: undefined },
+    ])
     expect(driver.triggerCards.get('computer_turned_off')?.calls).toEqual([
       { device, tokens: undefined },
+    ])
+    expect(driver.triggerCards.get('any_computer_turned_off')?.calls).toEqual([
+      { device: undefined, tokens: undefined },
     ])
     expect(driver.triggerCards.get('computer_uptime_changed')?.calls).toEqual([
       { device, tokens: { uptime: 5 } },

@@ -33,12 +33,18 @@ export const FLOW_CARD_IDS = {
     turnedOn: 'computer_turned_on',
     turnedOff: 'computer_turned_off',
     uptimeChanged: 'computer_uptime_changed',
+    anyTurnedOn: 'any_computer_turned_on',
+    anyTurnedOff: 'any_computer_turned_off',
   },
   conditions: {
     isOn: 'computer_is_on',
+    anyIsOn: 'any_computer_is_on',
+    allAreOn: 'all_computers_are_on',
   },
   actions: {
     turnOn: 'computer_turn_on',
     turnOff: 'computer_turn_off',
+    turnAllOn: 'turn_all_computers_on',
+    turnAllOff: 'turn_all_computers_off',
   },
 } as const
