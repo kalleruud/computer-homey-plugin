@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": ["app.mts", "drivers/**/*.mts"],
+  "entry": ["app.ts", "drivers/**/*.ts"],
   "ignore": ["**/tests/**/*"],
-  "project": ["**/*.{mts,ts,mjs,js}"],
+  "project": ["**/*.ts"],
   "treatConfigHintsAsErrors": true
 }

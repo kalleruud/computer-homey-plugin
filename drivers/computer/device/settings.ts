@@ -1,5 +1,5 @@
-import { DEFAULTS, MIN_POLL_INTERVAL_SECONDS } from '../constants.js'
-import type { ComputerSettings, RawDeviceSettings } from './types.mjs'
+import { DEFAULTS, MIN_POLL_INTERVAL_SECONDS } from '../constants'
+import type { ComputerSettings, RawDeviceSettings } from './types'
 
 export function getComputerSettings(
   settings: RawDeviceSettings

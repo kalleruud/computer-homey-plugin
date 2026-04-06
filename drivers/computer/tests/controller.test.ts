@@ -233,8 +233,8 @@ describe('computer controller', () => {
 
   it('initializes the device and starts online polling', async () => {
     const { onInit } = await importFresh<
-      typeof import('../device/controller.mts')
-    >('../device/controller.mts')
+      typeof import('../device/controller.ts')
+    >('../device/controller.ts')
     const state = createMockDevice({
       capabilities: {
         onoff: false,
@@ -258,8 +258,8 @@ describe('computer controller', () => {
 
   it('skips overlapping polls and runs scheduled refresh callbacks', async () => {
     const controller = await importFresh<
-      typeof import('../device/controller.mts')
-    >('../device/controller.mts')
+      typeof import('../device/controller.ts')
+    >('../device/controller.ts')
     const state = createMockDevice({
       capabilities: {
         onoff: false,
@@ -282,8 +282,8 @@ describe('computer controller', () => {
 
   it('applies validation warnings and ping fallback results', async () => {
     const controller = await importFresh<
-      typeof import('../device/controller.mts')
-    >('../device/controller.mts')
+      typeof import('../device/controller.ts')
+    >('../device/controller.ts')
 
     const invalidState = createMockDevice({
       capabilities: {
@@ -331,8 +331,8 @@ describe('computer controller', () => {
 
   it('handles offline probes, poll errors, and refresh scheduling', async () => {
     const controller = await importFresh<
-      typeof import('../device/controller.mts')
-    >('../device/controller.mts')
+      typeof import('../device/controller.ts')
+    >('../device/controller.ts')
     const state = createMockDevice({
       capabilities: {
         onoff: true,

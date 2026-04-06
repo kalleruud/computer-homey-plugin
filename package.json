@@ -16,7 +16,6 @@
     "@types/node": "^25",
     "eslint": "^9",
     "eslint-plugin-homey-app": "^1",
-    "globals": "^17",
     "homey": "^4",
     "knip": "^6",
     "prettier": "^3",

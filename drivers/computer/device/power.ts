@@ -2,9 +2,9 @@ import dgram from 'node:dgram'
 
 import { Client, type ClientChannel } from 'ssh2'
 
-import { DEFAULTS, SSH_READY_TIMEOUT_MS, SUDO_PROMPT } from '../constants.js'
-import { getShutdownCommand, parseMacAddress } from './device-validation.mjs'
-import type { ComputerSettings, Translate } from './types.mjs'
+import { DEFAULTS, SSH_READY_TIMEOUT_MS, SUDO_PROMPT } from '../constants'
+import { getShutdownCommand, parseMacAddress } from './device-validation'
+import type { ComputerSettings, Translate } from './types'
 
 type ErrorLogger = (message: string, error: unknown) => void
 

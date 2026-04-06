@@ -14,7 +14,15 @@
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false,
 
-    "outDir": ".homeybuild/"
+    "outDir": ".homeybuild/",
+
+    "esModuleInterop": true,
+
+    "paths": {
+      "@drivers/*": ["./drivers/*"],
+      "@src/*": ["./src/*"]
+    }
   },
-  "exclude": ["**/tests"]
+  "include": ["**/*.ts", "drivers/computer/device.mts", "drivers/computer/driver.mts", "app.mts"],
+  "exclude": ["**/tests**/*"]
 }
