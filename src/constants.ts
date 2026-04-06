@@ -27,3 +27,18 @@ export const REQUIRED_CAPABILITIES = [
   'poweroff',
   'uptime',
 ] as const
+
+export const FLOW_CARD_IDS = {
+  triggers: {
+    turnedOn: 'computer_turned_on',
+    turnedOff: 'computer_turned_off',
+    uptimeChanged: 'computer_uptime_changed',
+  },
+  conditions: {
+    isOn: 'computer_is_on',
+  },
+  actions: {
+    turnOn: 'computer_turn_on',
+    turnOff: 'computer_turn_off',
+  },
+} as const

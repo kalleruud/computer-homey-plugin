@@ -125,6 +125,8 @@ async function applyConnectionState(
   connectionState: Awaited<ReturnType<typeof pollComputerConnectionState>>
 ): Promise<boolean> {
   const { isOnline, warning } = connectionState
+  const previousConnected = device.getCapabilityValue('connected')
+  const previousUptime = device.getCapabilityValue('uptime')
 
   debugLog(
     device,
@@ -138,14 +140,37 @@ async function applyConnectionState(
   }
 
   const uptimeMinutes = getUptimeMinutes(device, isOnline)
+  const state = getDeviceState(device)
 
-  if (device.getCapabilityValue('connected') !== isOnline) {
+  if (previousConnected !== isOnline) {
     await device.setCapabilityValue('connected', isOnline)
   }
 
-  if (device.getCapabilityValue('uptime') !== uptimeMinutes) {
+  if (previousUptime !== uptimeMinutes) {
     await device.setCapabilityValue('uptime', uptimeMinutes)
   }
+
+  if (state.hasCompletedInitialPoll) {
+    const driver = device.driver as Homey.Driver & {
+      triggerComputerTurnedOn(device: Homey.Device): void
+      triggerComputerTurnedOff(device: Homey.Device): void
+      triggerComputerUptimeChanged(device: Homey.Device, uptime: number): void
+    }
+
+    if (previousConnected !== isOnline) {
+      if (isOnline) {
+        driver.triggerComputerTurnedOn(device)
+      } else {
+        driver.triggerComputerTurnedOff(device)
+      }
+    }
+
+    if (previousUptime !== uptimeMinutes && uptimeMinutes !== undefined) {
+      driver.triggerComputerUptimeChanged(device, uptimeMinutes)
+    }
+  }
+
+  state.hasCompletedInitialPoll = true
 
   debugLog(
     device,

@@ -8,6 +8,7 @@ type ComputerDeviceState = {
   refreshTimer?: ReturnType<typeof setTimeout>
   onlineSinceAt?: number
   pingCommandMissingLogged: boolean
+  hasCompletedInitialPoll: boolean
 }
 
 const deviceStates = new WeakMap<Homey.Device, ComputerDeviceState>()
@@ -20,6 +21,7 @@ export function getDeviceState(device: Homey.Device): ComputerDeviceState {
 
   const nextState: ComputerDeviceState = {
     pollInFlight: false,
+    hasCompletedInitialPoll: false,
     pingCommandMissingLogged: false,
   }
 

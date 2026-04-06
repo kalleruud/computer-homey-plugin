@@ -7,6 +7,7 @@
   "desc": {
     "en": "How long the computer has been running"
   },
+  "icon": "/assets/icons/timer.svg",
   "units": "min",
   "getable": true,
   "setable": false,
@@ -14,5 +15,25 @@
   "insights": true,
   "min": 0,
   "decimals": 0,
-  "icon": "/assets/icons/timer.svg"
+  "$flow": {
+    "triggers": [
+      {
+        "id": "measure_uptime_changed",
+        "highlight": true,
+        "title": {
+          "en": "The uptime changed"
+        },
+        "tokens": [
+          {
+            "name": "measure_uptime",
+            "title": {
+              "en": "Minutes"
+            },
+            "type": "number",
+            "example": 10
+          }
+        ]
+      }
+    ]
+  }
 }
