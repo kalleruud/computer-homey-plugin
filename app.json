@@ -49,8 +49,10 @@
         "lan"
       ],
       "capabilities": [
-        "onoff",
-        "alarm_connectivity"
+        "connected",
+        "poweron",
+        "poweroff",
+        "uptime"
       ],
       "icon": "/drivers/computer/assets/icon.svg",
       "images": {
@@ -77,126 +79,192 @@
       "id": "computer",
       "settings": [
         {
-          "id": "ip_address",
-          "type": "text",
+          "type": "group",
           "label": {
-            "en": "Computer IP address"
+            "en": "Computer"
           },
-          "hint": {
-            "en": "The IPv4 address Homey should probe and use for SSH."
-          },
-          "value": "",
-          "highlight": true
-        },
-        {
-          "id": "mac_address",
-          "type": "text",
-          "label": {
-            "en": "Computer MAC address"
-          },
-          "hint": {
-            "en": "The MAC address used for Wake-on-LAN, for example AA:BB:CC:DD:EE:FF."
-          },
-          "value": "",
-          "highlight": true
-        },
-        {
-          "id": "poll_interval",
-          "type": "number",
-          "label": {
-            "en": "Poll interval"
-          },
-          "hint": {
-            "en": "How often Homey should probe the computer status."
-          },
-          "value": 60,
-          "units": {
-            "en": "sec"
-          },
-          "min": 10,
-          "max": 3600,
-          "step": 5,
-          "highlight": true
-        },
-        {
-          "id": "target_os",
-          "type": "dropdown",
-          "label": {
-            "en": "Computer operating system"
-          },
-          "hint": {
-            "en": "Used to pick the default SSH shutdown command."
-          },
-          "value": "linux",
-          "values": [
+          "children": [
             {
-              "id": "windows",
+              "id": "ipAddress",
+              "type": "text",
               "label": {
-                "en": "Windows"
-              }
+                "en": "Computer IP"
+              },
+              "hint": {
+                "en": "IPv4 address of the computer to monitor and control."
+              },
+              "value": "",
+              "highlight": true
             },
             {
-              "id": "linux",
+              "id": "macAddress",
+              "type": "text",
               "label": {
-                "en": "Linux"
-              }
+                "en": "Computer MAC"
+              },
+              "hint": {
+                "en": "MAC address used for Wake-on-LAN."
+              },
+              "value": "",
+              "highlight": true
             },
             {
-              "id": "macos",
+              "id": "pollIntervalSeconds",
+              "type": "number",
               "label": {
-                "en": "macOS"
-              }
+                "en": "Poll interval"
+              },
+              "hint": {
+                "en": "How often Homey checks whether the computer is reachable."
+              },
+              "value": 60,
+              "min": 10,
+              "max": 3600,
+              "step": 1,
+              "units": {
+                "en": "seconds"
+              },
+              "highlight": true
             }
           ]
         },
         {
-          "id": "ssh_username",
-          "type": "text",
+          "type": "group",
           "label": {
-            "en": "SSH username"
+            "en": "Shutdown over SSH"
           },
-          "hint": {
-            "en": "The user Homey should use when running the shutdown command."
-          },
-          "value": ""
-        },
-        {
-          "id": "ssh_password",
-          "type": "password",
-          "label": {
-            "en": "SSH password"
-          },
-          "hint": {
-            "en": "For Linux and macOS, this should usually be the same password needed for sudo."
-          },
-          "value": ""
-        },
-        {
-          "id": "ssh_port",
-          "type": "number",
-          "label": {
-            "en": "SSH port"
-          },
-          "hint": {
-            "en": "The TCP port Homey should probe and use for SSH."
-          },
-          "value": 22,
-          "min": 1,
-          "max": 65535,
-          "step": 1
-        },
-        {
-          "id": "wol_broadcast_address",
-          "type": "text",
-          "label": {
-            "en": "Wake-on-LAN broadcast address"
-          },
-          "hint": {
-            "en": "Optional. Leave empty to use 255.255.255.255."
-          },
-          "value": ""
+          "children": [
+            {
+              "id": "targetOs",
+              "type": "dropdown",
+              "label": {
+                "en": "Operating system"
+              },
+              "value": "linux",
+              "values": [
+                {
+                  "id": "windows",
+                  "label": {
+                    "en": "Windows"
+                  }
+                },
+                {
+                  "id": "linux",
+                  "label": {
+                    "en": "Linux"
+                  }
+                },
+                {
+                  "id": "macos",
+                  "label": {
+                    "en": "macOS"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "sshUsername",
+              "type": "text",
+              "label": {
+                "en": "SSH username"
+              },
+              "hint": {
+                "en": "Required for remote shutdown."
+              },
+              "value": ""
+            },
+            {
+              "id": "sshPassword",
+              "type": "password",
+              "label": {
+                "en": "SSH password"
+              },
+              "hint": {
+                "en": "Required for remote shutdown."
+              },
+              "value": ""
+            },
+            {
+              "id": "sshPort",
+              "type": "number",
+              "label": {
+                "en": "SSH port"
+              },
+              "value": 22,
+              "min": 1,
+              "max": 65535,
+              "step": 1
+            }
+          ]
         }
       ]
     }
-  ]
+  ],
+  "capabilities": {
+    "connected": {
+      "type": "boolean",
+      "title": {
+        "en": "Turned on"
+      },
+      "desc": {
+        "en": "Whether the computer is on or off"
+      },
+      "getable": true,
+      "setable": false,
+      "uiQuickAction": true,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Turned on"
+      },
+      "insightsTitleFalse": {
+        "en": "Turned off"
+      },
+      "icon": "/assets/icons/zap.svg"
+    },
+    "poweroff": {
+      "title": {
+        "en": "Turn off"
+      },
+      "desc": {
+        "en": "Turns the computer off"
+      },
+      "type": "boolean",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "uiQuickAction": true,
+      "icon": "/assets/icons/power-off.svg"
+    },
+    "poweron": {
+      "title": {
+        "en": "Turn on"
+      },
+      "desc": {
+        "en": "Turns the computer on"
+      },
+      "type": "boolean",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "uiQuickAction": true,
+      "icon": "/assets/icons/power.svg"
+    },
+    "uptime": {
+      "type": "number",
+      "title": {
+        "en": "Uptime"
+      },
+      "desc": {
+        "en": "How long the computer has been running"
+      },
+      "units": "min",
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "insights": true,
+      "min": 0,
+      "decimals": 0,
+      "icon": "/assets/icons/timer.svg"
+    }
+  }
 }

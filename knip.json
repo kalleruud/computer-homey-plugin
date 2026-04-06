@@ -2,6 +2,6 @@
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "entry": ["**/*.mts"],
   "project": ["**/*.{ts,mts}"],
-  "ignore": ["**/tests/**/*"],
+  "ignore": ["**/*.{test,spec}.*"],
   "treatConfigHintsAsErrors": true
 }

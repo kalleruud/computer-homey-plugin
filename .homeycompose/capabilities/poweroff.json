@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
+  "title": {
+    "en": "Turn off"
+  },
+  "desc": {
+    "en": "Turns the computer off"
+  },
+  "type": "boolean",
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "uiQuickAction": true,
+  "$flow": {
+    "actions": [
+      {
+        "id": "press",
+        "title": {
+          "en": "Turn off the computer"
+        }
+      }
+    ]
+  },
+  "icon": "/assets/icons/power-off.svg"
+}

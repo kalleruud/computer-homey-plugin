@@ -2,8 +2,9 @@
   "name": "no.kallerud.computer",
   "version": "1.0.0",
   "scripts": {
-    "dev": "bun gen && bunx homey app run",
-    "gen": "bunx homey app build",
+    "dev": "bunx homey app run",
+    "app:build": "bunx homey app build",
+    "app:install": "bunx homey app install",
     "build": "tsc",
     "check": "bunx homey app validate --level verified && eslint . --cache && prettier -c . && bunx tsc --noEmit && bunx --bun knip",
     "fix": "eslint . --cache --fix && bunx --bun knip --fix --allow-remove-files && prettier -w ."

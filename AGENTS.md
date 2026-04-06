@@ -1,6 +1,8 @@
-- Run `bun gen` to generate the `app.json` file.
+- AWLAYS use the [/homey](.agents/skills/homey/SKILL.md) skill.
 - Always run `bun check` to check for errors, then `bun fix` to auto-fix errors. All errors must be fixed before committing.
 - For files exporting a class extending Homey, use the `.mts` extension.
+- App logic should be in the `/src` folder.
+- Tests should be in the `/tests` folder.
 
 - Tests must never import `.ts` files directly, wrappers are NOT allowed.
 - Tests must run through `.mts` files only (exclude `app.mts`).
