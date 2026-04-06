@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "bun gen && bunx homey app run",
     "gen": "bunx homey app build",
+    "install": "bunx homey app install",
     "build": "tsc",
     "check": "bunx homey app validate --level verified && eslint . --cache && prettier -c . && bunx tsc --noEmit && bunx --bun knip",
     "fix": "eslint . --cache --fix && bunx --bun knip --fix --allow-remove-files && prettier -w ."

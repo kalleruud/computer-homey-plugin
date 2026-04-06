@@ -35,5 +35,225 @@
   "author": {
     "email": "homey@kallerud.no",
     "name": "Ole Kallerud"
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "Computer"
+      },
+      "class": "other",
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "capabilities": [
+        "connected",
+        "poweron",
+        "poweroff",
+        "uptime"
+      ],
+      "icon": "/drivers/computer/assets/icon.svg",
+      "images": {
+        "small": "/drivers/computer/assets/images/computer@75px.jpg",
+        "large": "/drivers/computer/assets/images/computer@500px.jpg",
+        "xlarge": "/drivers/computer/assets/images/computer@1000px.jpg"
+      },
+      "pair": [
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "options": {
+            "singular": true
+          },
+          "navigation": {
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ],
+      "id": "computer",
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Computer"
+          },
+          "children": [
+            {
+              "id": "ipAddress",
+              "type": "text",
+              "label": {
+                "en": "Computer IP"
+              },
+              "hint": {
+                "en": "IPv4 address of the computer to monitor and control."
+              },
+              "value": "",
+              "highlight": true
+            },
+            {
+              "id": "macAddress",
+              "type": "text",
+              "label": {
+                "en": "Computer MAC"
+              },
+              "hint": {
+                "en": "MAC address used for Wake-on-LAN."
+              },
+              "value": "",
+              "highlight": true
+            },
+            {
+              "id": "pollIntervalSeconds",
+              "type": "number",
+              "label": {
+                "en": "Poll interval"
+              },
+              "hint": {
+                "en": "How often Homey checks whether the computer is reachable."
+              },
+              "value": 60,
+              "min": 10,
+              "max": 3600,
+              "step": 1,
+              "units": {
+                "en": "seconds"
+              },
+              "highlight": true
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Shutdown over SSH"
+          },
+          "children": [
+            {
+              "id": "targetOs",
+              "type": "dropdown",
+              "label": {
+                "en": "Operating system"
+              },
+              "value": "linux",
+              "values": [
+                {
+                  "id": "windows",
+                  "label": {
+                    "en": "Windows"
+                  }
+                },
+                {
+                  "id": "linux",
+                  "label": {
+                    "en": "Linux"
+                  }
+                },
+                {
+                  "id": "macos",
+                  "label": {
+                    "en": "macOS"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "sshUsername",
+              "type": "text",
+              "label": {
+                "en": "SSH username"
+              },
+              "hint": {
+                "en": "Required for remote shutdown."
+              },
+              "value": ""
+            },
+            {
+              "id": "sshPassword",
+              "type": "password",
+              "label": {
+                "en": "SSH password"
+              },
+              "hint": {
+                "en": "Required for remote shutdown."
+              },
+              "value": ""
+            },
+            {
+              "id": "sshPort",
+              "type": "number",
+              "label": {
+                "en": "SSH port"
+              },
+              "value": 22,
+              "min": 1,
+              "max": 65535,
+              "step": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "capabilities": {
+    "connected": {
+      "type": "boolean",
+      "title": {
+        "en": "Is on"
+      },
+      "desc": {
+        "en": "Whether the computer is on or off"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "toggle"
+    },
+    "poweroff": {
+      "title": {
+        "en": "Turn off"
+      },
+      "desc": {
+        "en": "Turns the computer off"
+      },
+      "type": "boolean",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "uiQuickAction": true
+    },
+    "poweron": {
+      "title": {
+        "en": "Turn on"
+      },
+      "desc": {
+        "en": "Turns the computer on"
+      },
+      "type": "boolean",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "uiQuickAction": true
+    },
+    "uptime": {
+      "type": "number",
+      "title": {
+        "en": "Uptime"
+      },
+      "desc": {
+        "en": "How long the computer has been running"
+      },
+      "units": "s",
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "insights": true,
+      "min": 0,
+      "decimals": 0
+    }
   }
 }

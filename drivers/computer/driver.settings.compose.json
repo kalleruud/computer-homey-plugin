@@ -1,3 +1,121 @@
 [
-  // TODO: Declare driver settings, see ComputerDriverSettings in @src/types.ts
+  {
+    "type": "group",
+    "label": {
+      "en": "Computer"
+    },
+    "children": [
+      {
+        "id": "ipAddress",
+        "type": "text",
+        "label": {
+          "en": "Computer IP"
+        },
+        "hint": {
+          "en": "IPv4 address of the computer to monitor and control."
+        },
+        "value": "",
+        "highlight": true
+      },
+      {
+        "id": "macAddress",
+        "type": "text",
+        "label": {
+          "en": "Computer MAC"
+        },
+        "hint": {
+          "en": "MAC address used for Wake-on-LAN."
+        },
+        "value": "",
+        "highlight": true
+      },
+      {
+        "id": "pollIntervalSeconds",
+        "type": "number",
+        "label": {
+          "en": "Poll interval"
+        },
+        "hint": {
+          "en": "How often Homey checks whether the computer is reachable."
+        },
+        "value": 60,
+        "min": 10,
+        "max": 3600,
+        "step": 1,
+        "units": {
+          "en": "seconds"
+        },
+        "highlight": true
+      }
+    ]
+  },
+  {
+    "type": "group",
+    "label": {
+      "en": "Shutdown over SSH"
+    },
+    "children": [
+      {
+        "id": "targetOs",
+        "type": "dropdown",
+        "label": {
+          "en": "Operating system"
+        },
+        "value": "linux",
+        "values": [
+          {
+            "id": "windows",
+            "label": {
+              "en": "Windows"
+            }
+          },
+          {
+            "id": "linux",
+            "label": {
+              "en": "Linux"
+            }
+          },
+          {
+            "id": "macos",
+            "label": {
+              "en": "macOS"
+            }
+          }
+        ]
+      },
+      {
+        "id": "sshUsername",
+        "type": "text",
+        "label": {
+          "en": "SSH username"
+        },
+        "hint": {
+          "en": "Required for remote shutdown."
+        },
+        "value": ""
+      },
+      {
+        "id": "sshPassword",
+        "type": "password",
+        "label": {
+          "en": "SSH password"
+        },
+        "hint": {
+          "en": "Required for remote shutdown."
+        },
+        "value": ""
+      },
+      {
+        "id": "sshPort",
+        "type": "number",
+        "label": {
+          "en": "SSH port"
+        },
+        "value": 22,
+        "min": 1,
+        "max": 65535,
+        "step": 1
+      }
+    ]
+  }
 ]
