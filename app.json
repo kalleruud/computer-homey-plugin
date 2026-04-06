@@ -36,42 +36,6 @@
     "email": "homey@kallerud.no",
     "name": "Ole Kallerud"
   },
-  "flow": {
-    "actions": [
-      {
-        "id": "start_computer",
-        "title": {
-          "en": "Start computer"
-        },
-        "hint": {
-          "en": "Sends a Wake-on-LAN packet to the selected computer."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=computer"
-          }
-        ]
-      },
-      {
-        "id": "shutdown_computer",
-        "title": {
-          "en": "Shut down computer"
-        },
-        "hint": {
-          "en": "Connects over SSH and runs the configured shutdown command."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=computer"
-          }
-        ]
-      }
-    ]
-  },
   "drivers": [
     {
       "name": {
