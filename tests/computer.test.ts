@@ -304,7 +304,23 @@ class FakeApp {
 
 class FakeDriver {
   devices: unknown[] = []
+  homey = {
+    flow: {
+      getActionCard: () => ({
+        registerRunListener: () => undefined,
+      }),
+      getConditionCard: () => ({
+        registerRunListener: () => undefined,
+      }),
+      getDeviceTriggerCard: () => ({
+        trigger: async () => undefined,
+      }),
+    },
+  }
   logs: unknown[][] = []
+  turnedOffTriggerCalls: unknown[] = []
+  turnedOnTriggerCalls: unknown[] = []
+  uptimeTriggerCalls: Array<{ device: unknown; uptime: number }> = []
 
   getDevices() {
     return this.devices
@@ -312,6 +328,18 @@ class FakeDriver {
 
   log(...args: unknown[]) {
     this.logs.push(args)
+  }
+
+  triggerComputerTurnedOff(device: unknown) {
+    this.turnedOffTriggerCalls.push(device)
+  }
+
+  triggerComputerTurnedOn(device: unknown) {
+    this.turnedOnTriggerCalls.push(device)
+  }
+
+  triggerComputerUptimeChanged(device: unknown, uptime: number) {
+    this.uptimeTriggerCalls.push({ device, uptime })
   }
 }
 
@@ -447,6 +475,7 @@ const SHUTDOWN_COMMANDS = {
 
 function createDevice(settings: FakeSettings = {}) {
   const device = new ComputerDevice() as unknown as FakeDevice & {
+    driver: FakeDriver
     onAdded: () => void
     onDeleted: () => void
     onInit: () => Promise<void>
@@ -457,6 +486,7 @@ function createDevice(settings: FakeSettings = {}) {
     startComputer: () => Promise<void>
   }
 
+  device.driver = new FakeDriver()
   device.settings = settings
 
   return device
@@ -641,6 +671,8 @@ describe('ComputerDevice', () => {
     expect(pingMissingErrors).toHaveLength(1)
     expect(device.warning).toBeUndefined()
     expect(device.getCapabilityValue('connected')).toBe(false)
+    expect(device.getCapabilityValue('uptime')).toBe(0)
+    expect(device.driver.turnedOffTriggerCalls).toEqual([device])
   })
 
   it('sends wake-on-lan packets through the registered capability listener', async () => {

@@ -165,7 +165,7 @@ async function applyConnectionState(
       }
     }
 
-    if (previousUptime !== uptimeMinutes && uptimeMinutes !== undefined) {
+    if (previousUptime !== uptimeMinutes) {
       driver.triggerComputerUptimeChanged(device, uptimeMinutes)
     }
   }

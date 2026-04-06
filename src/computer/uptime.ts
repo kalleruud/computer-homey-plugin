@@ -4,7 +4,7 @@ import { getDeviceState } from '../lib.js'
 export function getUptimeMinutes(
   device: Homey.Device,
   isOnline: boolean
-): number | undefined {
+): number {
   const state = getDeviceState(device)
   const now = Date.now()
 
@@ -15,7 +15,7 @@ export function getUptimeMinutes(
   }
 
   if (state.onlineSinceAt === undefined) {
-    return undefined
+    return 0
   }
 
   return Math.max(0, Math.floor((now - state.onlineSinceAt) / 60_000))
