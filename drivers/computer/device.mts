@@ -1,9 +1,5 @@
 import Homey from 'homey'
-import {
-  scheduleRefresh,
-  startPolling,
-  stopPolling,
-} from '../../src/computer/connected.js'
+import { startPolling, stopPolling } from '../../src/computer/connected.js'
 import { shutdownComputerOverSsh as shutdownComputer } from '../../src/computer/poweroff.js'
 import { sendWakeOnLan } from '../../src/computer/poweron.js'
 import {
@@ -57,7 +53,6 @@ export default class ComputerDevice extends Homey.Device {
   override async onUninit() {
     this.log('Computer device has been uninitialized')
     stopPolling(this)
-    this.removeAllListeners()
   }
 
   async startComputer() {
@@ -70,8 +65,6 @@ export default class ComputerDevice extends Homey.Device {
       this.error('Failed to send a Wake-on-LAN packet', error)
       throw new Error('Failed to send the Wake-on-LAN packet.')
     }
-
-    scheduleRefresh(this)
   }
 
   async shutdownComputer() {
@@ -84,7 +77,5 @@ export default class ComputerDevice extends Homey.Device {
       this.error('Failed to shut down the computer over SSH', error)
       throw new Error('Failed to shut down the computer over SSH.')
     }
-
-    scheduleRefresh(this)
   }
 }

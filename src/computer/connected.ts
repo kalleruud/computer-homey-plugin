@@ -1,11 +1,7 @@
 import type Homey from 'homey'
 import { execFile } from 'node:child_process'
 import net from 'node:net'
-import {
-  POLL_TIMEOUT_MS,
-  STARTUP_REFRESH_DELAY_MS as REFRESH_DELAY_MS,
-  SSH_UNAVAILABLE_WARNING,
-} from '../constants.js'
+import { POLL_TIMEOUT_MS, SSH_UNAVAILABLE_WARNING } from '../constants.js'
 import { debugLog, getDeviceState } from '../lib.js'
 import { ComputerDriverSettings } from '../types.js'
 import {
@@ -49,22 +45,6 @@ export async function startPolling(device: Homey.Device) {
 
   debugLog(device, 'Running initial poll immediately after startup')
   await refreshComputerState(device)
-}
-
-export function scheduleRefresh(device: Homey.Device) {
-  const state = getDeviceState(device)
-
-  if (state.refreshTimer) {
-    device.homey.clearTimeout(state.refreshTimer)
-  }
-
-  debugLog(device, `Scheduling follow-up poll in ${REFRESH_DELAY_MS} ms`)
-
-  state.refreshTimer = device.homey.setTimeout(() => {
-    getDeviceState(device).refreshTimer = undefined
-    debugLog(device, 'Scheduled follow-up poll fired')
-    void refreshComputerState(device)
-  }, REFRESH_DELAY_MS)
 }
 
 async function pollComputerConnectionState(

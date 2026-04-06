@@ -9,7 +9,6 @@ export const MIN_POLL_INTERVAL_SECONDS = 10
 export const MAX_POLL_INTERVAL_SECONDS = 3600
 export const POLL_TIMEOUT_MS = 3000
 export const SSH_READY_TIMEOUT_MS = 10_000
-export const STARTUP_REFRESH_DELAY_MS = 10_000
 export const SUDO_PROMPT = '[sudo] password:'
 export const SSH_UNAVAILABLE_WARNING =
   'Computer is reachable, but SSH is unavailable.'
