@@ -12,6 +12,7 @@ export type ComputerSettings = {
   ipAddress: string
   macAddress: string
   pollIntervalSeconds: number
+  shutdownTimeoutSeconds: number
   targetOs: TargetOs
   sshUsername: string
   sshPassword: string

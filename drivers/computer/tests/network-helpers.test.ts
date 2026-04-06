@@ -198,6 +198,8 @@ describe('computer network behavior via device.mts', () => {
     await ComputerDevice.prototype.startComputer.call(state.device as never)
     expect(lastSendArgs).toEqual({ address: '255.255.255.255', port: 9 })
 
+    socketBehavior = 'error'
+    pingError = new Error('ping failed')
     await ComputerDevice.prototype.shutdownComputer.call(state.device as never)
     expect(sshExecCommand).toBe(SHUTDOWN_COMMANDS.linux)
 

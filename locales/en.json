@@ -6,6 +6,7 @@
     "invalid_wol_broadcast_address": "Set a valid Wake-on-LAN broadcast address.",
     "missing_ssh_username": "Set the SSH username before shutting down the computer.",
     "missing_ssh_password": "Set the SSH password before shutting down the computer.",
+    "shutdown_timeout": "Timed out while waiting for the computer to turn off.",
     "ssh_shutdown_failed": "Failed to shut down the computer over SSH.",
     "startup_failed": "Failed to send the Wake-on-LAN packet."
   },

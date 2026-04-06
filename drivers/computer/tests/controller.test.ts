@@ -371,6 +371,8 @@ describe('computer controller', () => {
 
     const listener = state.capabilityListeners.get('onoff')
     await listener?.(true)
+    socketMode = 'error'
+    pingError = new Error('ping failed')
     await listener?.(false)
 
     expect(dgramSendArgs).toEqual({

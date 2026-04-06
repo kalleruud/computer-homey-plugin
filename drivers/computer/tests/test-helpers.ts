@@ -18,6 +18,7 @@ export const defaultRawSettings = {
   ip_address: '192.168.1.2',
   mac_address: 'aa:bb:cc:dd:ee:ff',
   poll_interval: 60,
+  shutdown_timeout: 60,
   target_os: 'linux',
   ssh_username: 'ruud',
   ssh_password: 'secret',

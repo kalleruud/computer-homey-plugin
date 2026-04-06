@@ -1,5 +1,7 @@
 import Homey from 'homey'
 import {
+  MIN_SHUTDOWN_TIMEOUT_SECONDS,
+  SHUTDOWN_CONFIRM_POLL_INTERVAL_MS,
   SHUTDOWN_REFRESH_DELAY_MS,
   STARTUP_REFRESH_DELAY_MS,
 } from '../constants'
@@ -60,6 +62,7 @@ export async function shutdownComputer(device: Homey.Device) {
   const settings = getSettings(device)
   assertCanShutdown(settings, key => translate(device, key))
   await executeShutdown(settings, getPowerOptions(device))
+  await waitForOfflineConfirmation(device, settings.shutdownTimeoutSeconds)
   scheduleRefresh(device, SHUTDOWN_REFRESH_DELAY_MS)
 }
 
@@ -133,6 +136,32 @@ function scheduleRefresh(device: Homey.Device, delayMs: number) {
     currentState.refreshTimer = undefined
     void pollOnlineStatus(device)
   }, delayMs)
+}
+
+function waitForTimeout(device: Homey.Device, delayMs: number) {
+  return new Promise<void>(resolve => {
+    device.homey.setTimeout(resolve, delayMs)
+  })
+}
+
+async function waitForOfflineConfirmation(
+  device: Homey.Device,
+  timeoutSeconds: number
+) {
+  const timeoutMs =
+    Math.max(MIN_SHUTDOWN_TIMEOUT_SECONDS, timeoutSeconds) * 1000
+  const timeoutAt = Date.now() + timeoutMs
+
+  while (Date.now() <= timeoutAt) {
+    const isOnline = await pollOnlineStatus(device)
+    if (!isOnline) {
+      return
+    }
+
+    await waitForTimeout(device, SHUTDOWN_CONFIRM_POLL_INTERVAL_MS)
+  }
+
+  throw new Error(translate(device, 'errors.shutdown_timeout'))
 }
 
 async function applyPollResult(

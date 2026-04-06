@@ -42,6 +42,23 @@
     "highlight": true
   },
   {
+    "id": "shutdown_timeout",
+    "type": "number",
+    "label": {
+      "en": "Shutdown timeout"
+    },
+    "hint": {
+      "en": "How long Homey should wait for confirmed shutdown."
+    },
+    "value": 60,
+    "units": {
+      "en": "sec"
+    },
+    "min": 1,
+    "max": 3600,
+    "step": 1
+  },
+  {
     "id": "target_os",
     "type": "dropdown",
     "label": {

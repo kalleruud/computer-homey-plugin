@@ -16,6 +16,11 @@ export function getComputerSettings(
       Number.isFinite(settings.poll_interval)
         ? settings.poll_interval
         : DEFAULTS.POLL_INTERVAL_SECONDS,
+    shutdownTimeoutSeconds:
+      typeof settings.shutdown_timeout === 'number' &&
+      Number.isFinite(settings.shutdown_timeout)
+        ? settings.shutdown_timeout
+        : DEFAULTS.SHUTDOWN_TIMEOUT_SECONDS,
     targetOs:
       settings.target_os === 'windows' ||
       settings.target_os === 'linux' ||
