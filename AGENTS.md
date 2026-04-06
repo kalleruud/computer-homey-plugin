@@ -1,6 +1,9 @@
 - Run `bun prepare` to generate the `app.json` file.
 - Always run `bun fix && bun check` to fix and check for errors. All errors must be fixed before committing.
 
+- Branches with name `release/X.Y.Z` should merge to `main`.
+- All other branches should merge to the latest `release/X.Y.Z`-branch.
+
 - Store release notes in `.homeychangelog.json`.
 - Each version must have a single-line entry keyed by `X.Y.Z`.
 - Keep changelog text concise, user-visible, and limited to a single sentence.
