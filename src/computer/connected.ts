@@ -149,7 +149,7 @@ async function applyConnectionState(
 
   debugLog(
     device,
-    `Applied capability state: connected=${isOnline.toString()} uptime=${uptimeMinutes.toString()}`
+    `Applied capability state: connected=${isOnline.toString()} uptime=${uptimeMinutes?.toString() ?? '-'}`
   )
 
   return isOnline
