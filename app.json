@@ -31,9 +31,9 @@
     "large": "/assets/images/power_button@500px.jpg",
     "xlarge": "/assets/images/power_button@1000px.jpg"
   },
-  "support": "mailto:ole@kallerud.no",
+  "support": "mailto:homey@kallerud.no",
   "author": {
-    "email": "ole@kallerud.no",
+    "email": "homey@kallerud.no",
     "name": "Ole Kallerud"
   },
   "flow": {
