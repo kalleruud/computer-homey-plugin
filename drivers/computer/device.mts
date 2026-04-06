@@ -23,7 +23,7 @@ export default class ComputerDevice extends Homey.Device {
     )
 
     this.registerCapabilityListener(
-      'poweron' satisfies Capability,
+      'poweroff' satisfies Capability,
       async () => {
         await this.shutdownComputer()
       }
