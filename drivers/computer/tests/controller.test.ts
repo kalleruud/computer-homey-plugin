@@ -375,9 +375,8 @@ describe('computer controller', () => {
   })
 
   it('logs lifecycle events and supports explicit uninit polling stop', async () => {
-    const { default: ComputerDevice } = await importFresh<
-      typeof import('../device.mts')
-    >('../device.mts')
+    const { default: ComputerDevice } =
+      await importFresh<typeof import('../device.mts')>('../device.mts')
     const state = createMockDevice()
 
     await ComputerDevice.prototype.onInit.call(state.device as never)
@@ -385,7 +384,9 @@ describe('computer controller', () => {
     ComputerDevice.prototype.onRenamed.call(state.device as never, 'Office PC')
     await ComputerDevice.prototype.onUninit.call(state.device as never)
 
-    expect(state.device.log).toHaveBeenCalledWith('Computer device has been added')
+    expect(state.device.log).toHaveBeenCalledWith(
+      'Computer device has been added'
+    )
     expect(state.device.log).toHaveBeenCalledWith(
       'Computer device was renamed to',
       'Office PC'
