@@ -23,6 +23,6 @@
       "@src/*": ["./src/*"]
     }
   },
-  "include": ["**/*.ts", "drivers/computer/device.mts", "drivers/computer/driver.mts", "app.mts"],
+  "include": ["**/*.{ts,mts}"],
   "exclude": ["**/tests**/*"]
 }

@@ -43,4 +43,18 @@ describe('computer driver', () => {
       },
     ])
   })
+
+  it('initializes and logs driver startup', async () => {
+    const { default: ComputerDriver } =
+      await importFresh<typeof import('../driver.mts')>('../driver.mts')
+    const driver = new ComputerDriver()
+    ;(driver as unknown as { log: ReturnType<typeof mock> }).log = mock(
+      () => undefined
+    )
+
+    await expect(driver.onInit()).resolves.toBe(undefined)
+    expect(
+      (driver as unknown as { log: ReturnType<typeof mock> }).log
+    ).toHaveBeenCalledWith('Computer driver has been initialized')
+  })
 })
