@@ -204,14 +204,21 @@
     "connected": {
       "type": "boolean",
       "title": {
-        "en": "Is on"
+        "en": "Turned on"
       },
       "desc": {
         "en": "Whether the computer is on or off"
       },
       "getable": true,
       "setable": false,
-      "uiComponent": "toggle"
+      "uiQuickAction": true,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Turned on"
+      },
+      "insightsTitleFalse": {
+        "en": "Turned off"
+      }
     },
     "poweroff": {
       "title": {

@@ -130,9 +130,11 @@ export default class ComputerDevice extends Homey.Device {
     this.log(`Starting computer status polling every ${intervalMs} ms`)
 
     state.pollIntervalTimer = this.homey.setInterval(() => {
+      this.log('Polling timer fired')
       this.refreshComputerState()
     }, intervalMs)
 
+    this.log('Running initial poll immediately after startup')
     await this.refreshComputerState()
   }
 
@@ -157,8 +159,11 @@ export default class ComputerDevice extends Homey.Device {
       this.homey.clearTimeout(state.refreshTimer)
     }
 
+    this.log(`Scheduling follow-up poll in ${delayMs} ms`)
+
     state.refreshTimer = this.homey.setTimeout(() => {
       this.getDeviceState().refreshTimer = undefined
+      this.log('Scheduled follow-up poll fired')
       this.refreshComputerState()
     }, delayMs)
   }
@@ -166,14 +171,20 @@ export default class ComputerDevice extends Homey.Device {
   private async refreshComputerState(): Promise<boolean> {
     const state = this.getDeviceState()
     if (state.pollInFlight) {
+      this.log('Skipping poll because another poll is already running')
       return this.getCapabilityValue('connected') === true
     }
 
     state.pollInFlight = true
 
     try {
+      const settings = this.getComputerSettings()
+      this.log(
+        `Polling computer status for ${settings.ipAddress || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
+      )
+
       const nextState = await pollComputerConnectionState(
-        this.getComputerSettings(),
+        settings,
         () => {
           if (state.pingCommandMissingLogged) {
             return
@@ -199,6 +210,10 @@ export default class ComputerDevice extends Homey.Device {
   }: Awaited<
     ReturnType<typeof pollComputerConnectionState>
   >): Promise<boolean> {
+    this.log(
+      `Poll result: online=${isOnline.toString()} warning=${warning ?? 'none'}`
+    )
+
     if (warning) {
       await this.setWarning(warning)
     } else {
@@ -231,6 +246,10 @@ export default class ComputerDevice extends Homey.Device {
     ) {
       await this.setCapabilityValue('uptime', uptimeSeconds)
     }
+
+    this.log(
+      `Applied capability state: connected=${isOnline.toString()} uptime=${uptimeSeconds.toString()}`
+    )
 
     return isOnline
   }
