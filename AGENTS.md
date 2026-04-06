@@ -1,5 +1,6 @@
 - AWLAYS use the [/homey](.agents/skills/homey/SKILL.md) skill.
-- Always run `bun check` to check for errors, then `bun fix` to auto-fix errors. All errors must be fixed before committing.
+- Always run `bun check` and `bun test` after changes to check for errors
+  - Run `bun fix` to auto-fix errors from `bun check`. All errors must be fixed before committing.
 - For files exporting a class extending Homey, use the `.mts` extension.
 - App logic should be in the `/src` folder.
 - Tests should be in the `/tests` folder.

@@ -47,6 +47,23 @@ type SshExecCall = {
   }
 }
 
+type FakeFlowRunListener = (
+  args: unknown,
+  state?: unknown
+) => Promise<unknown> | unknown
+
+type FakeActionOrConditionCard = {
+  registerRunListener: (
+    listener: FakeFlowRunListener
+  ) => FakeActionOrConditionCard
+  runListener?: FakeFlowRunListener
+}
+
+type FakeTriggerCard = {
+  calls: Array<{ device: unknown; tokens?: object }>
+  trigger: (device: unknown, tokens?: object) => Promise<void>
+}
+
 type RuntimeState = {
   bindCount: number
   boundSockets: number
@@ -306,24 +323,81 @@ class FakeDriver {
   devices: unknown[] = []
   homey = {
     flow: {
-      getActionCard: () => ({
-        registerRunListener: () => undefined,
-      }),
-      getConditionCard: () => ({
-        registerRunListener: () => undefined,
-      }),
-      getDeviceTriggerCard: () => ({
-        trigger: async () => undefined,
-      }),
+      getActionCard: (id: string) => this.getActionCard(id),
+      getConditionCard: (id: string) => this.getConditionCard(id),
+      getDeviceTriggerCard: (id: string) => this.getDeviceTriggerCard(id),
     },
   }
+  actionCards = new Map<string, FakeActionOrConditionCard>()
+  conditionCards = new Map<string, FakeActionOrConditionCard>()
+  errorCalls: unknown[][] = []
   logs: unknown[][] = []
   turnedOffTriggerCalls: unknown[] = []
   turnedOnTriggerCalls: unknown[] = []
+  triggerCards = new Map<string, FakeTriggerCard>()
   uptimeTriggerCalls: Array<{ device: unknown; uptime: number }> = []
 
   getDevices() {
     return this.devices
+  }
+
+  private createRunCard() {
+    const card: FakeActionOrConditionCard = {
+      registerRunListener: listener => {
+        card.runListener = listener
+        return card
+      },
+    }
+
+    return card
+  }
+
+  private createTriggerCard() {
+    const card: FakeTriggerCard = {
+      calls: [],
+      trigger: async (device, tokens) => {
+        card.calls.push({ device, tokens })
+      },
+    }
+
+    return card
+  }
+
+  getActionCard(id: string) {
+    const existingCard = this.actionCards.get(id)
+    if (existingCard) {
+      return existingCard
+    }
+
+    const nextCard = this.createRunCard()
+    this.actionCards.set(id, nextCard)
+    return nextCard
+  }
+
+  getConditionCard(id: string) {
+    const existingCard = this.conditionCards.get(id)
+    if (existingCard) {
+      return existingCard
+    }
+
+    const nextCard = this.createRunCard()
+    this.conditionCards.set(id, nextCard)
+    return nextCard
+  }
+
+  getDeviceTriggerCard(id: string) {
+    const existingCard = this.triggerCards.get(id)
+    if (existingCard) {
+      return existingCard
+    }
+
+    const nextCard = this.createTriggerCard()
+    this.triggerCards.set(id, nextCard)
+    return nextCard
+  }
+
+  error(...args: unknown[]) {
+    this.errorCalls.push(args)
   }
 
   log(...args: unknown[]) {
@@ -519,6 +593,73 @@ describe('ComputerDriver', () => {
     await driver.onInit()
 
     expect(driver.logs).toContainEqual(['Computer driver has been initialized'])
+  })
+
+  it('registers flow listeners for the computer cards', async () => {
+    const driver = new ComputerDriver() as unknown as FakeDriver & {
+      onInit: () => Promise<void>
+    }
+    const startComputer = mock(async () => undefined)
+    const shutdownComputer = mock(async () => undefined)
+    const onDevice = {
+      getCapabilityValue: (capability: string) =>
+        capability === 'connected' ? true : undefined,
+      shutdownComputer,
+      startComputer,
+    }
+    const offDevice = {
+      getCapabilityValue: () => false,
+    }
+
+    await driver.onInit()
+
+    expect(
+      await driver.conditionCards
+        .get('computer_is_on')
+        ?.runListener?.({ device: onDevice })
+    ).toBe(true)
+    expect(
+      await driver.conditionCards
+        .get('computer_is_on')
+        ?.runListener?.({ device: offDevice })
+    ).toBe(false)
+
+    await driver.actionCards
+      .get('computer_turn_on')
+      ?.runListener?.({ device: onDevice })
+    await driver.actionCards
+      .get('computer_turn_off')
+      ?.runListener?.({ device: onDevice })
+
+    expect(startComputer).toHaveBeenCalledTimes(1)
+    expect(shutdownComputer).toHaveBeenCalledTimes(1)
+  })
+
+  it('triggers the registered flow cards through helper methods', async () => {
+    const driver = new ComputerDriver() as unknown as FakeDriver & {
+      onInit: () => Promise<void>
+      triggerComputerTurnedOff: (device: unknown) => void
+      triggerComputerTurnedOn: (device: unknown) => void
+      triggerComputerUptimeChanged: (device: unknown, uptime: number) => void
+    }
+    const device = { id: 'device-1' }
+
+    await driver.onInit()
+
+    driver.triggerComputerTurnedOn(device)
+    driver.triggerComputerTurnedOff(device)
+    driver.triggerComputerUptimeChanged(device, 5)
+    await Bun.sleep(0)
+
+    expect(driver.triggerCards.get('computer_turned_on')?.calls).toEqual([
+      { device, tokens: undefined },
+    ])
+    expect(driver.triggerCards.get('computer_turned_off')?.calls).toEqual([
+      { device, tokens: undefined },
+    ])
+    expect(driver.triggerCards.get('computer_uptime_changed')?.calls).toEqual([
+      { device, tokens: { uptime: 5 } },
+    ])
   })
 
   it('creates a predictable default pair device name', async () => {
