@@ -1,3 +1,4 @@
+- AWLAYS use the [/homey](.agents/skills/homey/SKILL.md) skill.
 - Run `bun gen` to generate the `app.json` file.
 - Always run `bun check` to check for errors, then `bun fix` to auto-fix errors. All errors must be fixed before committing.
 - For files exporting a class extending Homey, use the `.mts` extension.
