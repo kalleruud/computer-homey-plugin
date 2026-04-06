@@ -30,7 +30,7 @@ Wake, monitor, and power down your computer from Homey.
    ```
 1. Generate the app manifest
    ```bash
-   bun run gen
+   bun run app:build
    ```
 1. Run the app
    ```bash
