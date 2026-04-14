@@ -2,41 +2,51 @@ import dgram from 'node:dgram'
 
 import { DEFAULTS } from '../constants.js'
 import { ComputerDriverSettings } from '../types.js'
-import { parseMacAddress } from './settings.js'
+import { inferWolBroadcastAddress, parseMacAddress } from './settings.js'
 
 export async function sendWakeOnLan(settings: ComputerDriverSettings) {
-  const macAddress = parseMacAddress(settings.macAddress)
-  const magicPacket = Buffer.alloc(6 + 16 * macAddress.length, 0xff)
+  await Promise.all(
+    settings.macAddresses.map(async (macAddressString, index) => {
+      const macAddress = parseMacAddress(macAddressString)
+      const magicPacket = Buffer.alloc(6 + 16 * macAddress.length, 0xff)
 
-  for (let index = 0; index < 16; index += 1) {
-    macAddress.copy(magicPacket, 6 + index * macAddress.length)
-  }
+      for (let magicIndex = 0; magicIndex < 16; magicIndex += 1) {
+        macAddress.copy(magicPacket, 6 + magicIndex * macAddress.length)
+      }
 
-  await new Promise<void>((resolve, reject) => {
-    const socket = dgram.createSocket('udp4')
+      const ipIndex = Math.min(index, settings.ipAddresses.length - 1)
+      const wolBroadcastAddress =
+        ipIndex >= 0
+          ? inferWolBroadcastAddress(settings.ipAddresses[ipIndex] ?? '')
+          : DEFAULTS.WOL_BROADCAST_ADDRESS
 
-    socket.once('error', error => {
-      socket.close()
-      reject(error)
-    })
+      await new Promise<void>((resolve, reject) => {
+        const socket = dgram.createSocket('udp4')
 
-    socket.bind(() => {
-      socket.setBroadcast(true)
-      socket.send(
-        magicPacket,
-        DEFAULTS.WOL_PORT,
-        settings.wolBroadcastAddress,
-        error => {
+        socket.once('error', error => {
           socket.close()
+          reject(error)
+        })
 
-          if (error) {
-            reject(error)
-            return
-          }
+        socket.bind(() => {
+          socket.setBroadcast(true)
+          socket.send(
+            magicPacket,
+            DEFAULTS.WOL_PORT,
+            wolBroadcastAddress,
+            error => {
+              socket.close()
 
-          resolve()
-        }
-      )
+              if (error) {
+                reject(error)
+                return
+              }
+
+              resolve()
+            }
+          )
+        })
+      })
     })
-  })
+  )
 }

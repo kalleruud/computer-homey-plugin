@@ -14,8 +14,8 @@
           "no": "Datamaskin-IP"
         },
         "hint": {
-          "en": "IPv4 address of the computer to monitor and control.",
-          "no": "IPv4-adressen til datamaskinen som skal overvåkes og styres."
+          "en": "One or more IPv4 addresses, comma-separated.",
+          "no": "En eller flere IPv4-adresser, kommaseparert."
         },
         "value": "",
         "highlight": true
@@ -28,8 +28,8 @@
           "no": "Datamaskin-MAC"
         },
         "hint": {
-          "en": "MAC address used for Wake-on-LAN.",
-          "no": "MAC-adresse brukt for Wake-on-LAN."
+          "en": "One or more MAC addresses, comma-separated.",
+          "no": "En eller flere MAC-adresser, kommaseparert."
         },
         "value": "",
         "highlight": true

@@ -914,6 +914,26 @@ describe('ComputerDevice', () => {
     expect(runtime.sentPackets[0]?.packet).toHaveLength(102)
   })
 
+  it('sends wake-on-lan packets for every configured MAC address', async () => {
+    const device = createDevice({
+      ipAddress: ' 10.0.0.23 , 192.168.1.42 ',
+      macAddress: ' AA:BB:CC:DD:EE:FF , 11-22-33-44-55-66 ',
+      sshPort: 22,
+    })
+
+    runtime.tcpOutcomes = ['connect']
+    await device.onInit()
+
+    await device.capabilityListeners.get('poweron')?.()
+
+    expect(runtime.sentPackets).toHaveLength(2)
+    expect(runtime.sentPackets.map(packet => packet.address)).toEqual([
+      '10.0.0.255',
+      '192.168.1.255',
+    ])
+    expect(runtime.sentPackets.map(packet => packet.port)).toEqual([9, 9])
+  })
+
   it('wraps wake-on-lan transport failures with a device-level error', async () => {
     const device = createDevice({
       ipAddress: '192.168.10.42',
@@ -989,6 +1009,28 @@ describe('ComputerDevice', () => {
     ])
     expect(runtime.sshWrites).toEqual(['secret\n'])
     expect(runtime.sshEndCount).toBe(1)
+  })
+
+  it('tries shutdown over ssh on all IPs until one succeeds', async () => {
+    const device = createDevice({
+      ipAddress: ' 192.168.1.20 , 192.168.1.21 ',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+
+    runtime.sshScenarios = [
+      { connectError: new Error('first failed') },
+      { closeCode: 0 },
+    ]
+
+    await device.shutdownComputer()
+
+    expect(runtime.sshConnectConfigs.map(config => config.host)).toEqual([
+      '192.168.1.20',
+      '192.168.1.21',
+    ])
   })
 
   it('defaults unknown target operating systems to linux and windows avoids sudo', async () => {
@@ -1074,6 +1116,42 @@ describe('ComputerDevice', () => {
     await expect(device.shutdownComputer()).rejects.toThrow(
       'SSH password is required for shutdown.'
     )
+  })
+
+  it('considers machine online when any configured IP responds over ssh', async () => {
+    const device = createDevice({
+      ipAddress: ' 192.168.1.20 , 192.168.1.21 ',
+      sshPort: 22,
+    })
+
+    runtime.tcpOutcomes = ['timeout', 'connect']
+    await device.onInit()
+
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(runtime.tcpCalls).toEqual([
+      { host: '192.168.1.20', port: 22 },
+      { host: '192.168.1.21', port: 22 },
+    ])
+  })
+
+  it('considers machine online when any configured IP responds to ping', async () => {
+    const device = createDevice({
+      ipAddress: ' 192.168.1.20 , 192.168.1.21 ',
+      sshPort: 22,
+    })
+
+    runtime.tcpOutcomes = ['timeout', 'timeout']
+    runtime.pingOutcomes = [new Error('unreachable'), null]
+    await device.onInit()
+
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBe(
+      'Computer is reachable, but SSH is unavailable.'
+    )
+    expect(runtime.pingCalls).toEqual([
+      { args: ['-c', '1', '-W', '1', '192.168.1.20'], file: 'ping' },
+      { args: ['-c', '1', '-W', '1', '192.168.1.21'], file: 'ping' },
+    ])
   })
 
   it('logs lifecycle events and stops polling when the device is removed', async () => {
