@@ -93,7 +93,7 @@ async function shutdownComputerOverSshOnHost(
           maybeSendPassword(chunk, stream)
         })
         stream.once('close', (code: number | null | undefined) => {
-          if (code === 0 || code === null || code === undefined) {
+          if (!code) {
             finish()
             return
           }
