@@ -92,8 +92,8 @@ async function shutdownComputerOverSshOnHost(
           stderr += chunk
           maybeSendPassword(chunk, stream)
         })
-        stream.once('close', (code: number | null) => {
-          if (code === 0 || code === null) {
+        stream.once('close', (code: number | null | undefined) => {
+          if (!code) {
             finish()
             return
           }
@@ -101,7 +101,7 @@ async function shutdownComputerOverSshOnHost(
           const errorMessage =
             stderr.trim() ||
             stdout.trim() ||
-            `SSH command exited with code ${code.toString()}`
+            `SSH command exited with code ${String(code)}`
 
           finish(new Error(errorMessage))
         })
