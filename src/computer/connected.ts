@@ -48,11 +48,16 @@ export async function startPolling(device: Homey.Device) {
 }
 
 async function pollComputerConnectionState(
+  device: Homey.Device,
   settings: ComputerDriverSettings,
   onMissingPingCommand: () => void
 ): Promise<ComputerConnectionState> {
   const validationError = getProbeValidationError(settings)
   if (validationError) {
+    debugLog(
+      device,
+      `Monitor: probes skipped (invalid settings) online=false warning=${validationError}`
+    )
     return {
       isOnline: false,
       warning: validationError,
@@ -61,29 +66,55 @@ async function pollComputerConnectionState(
 
   const [sshResults, pingResults] = await Promise.all([
     Promise.all(
-      settings.ipAddresses.map(ipAddress =>
-        probeTcpPort(ipAddress, settings.sshPort)
-      )
+      settings.ipAddresses.map(async ipAddress => {
+        debugLog(
+          device,
+          `Monitor: ssh probe ${ipAddress}:${settings.sshPort.toString()}`
+        )
+        return probeTcpPort(ipAddress, settings.sshPort)
+      })
     ),
     Promise.all(
-      settings.ipAddresses.map(ipAddress =>
-        probePing(ipAddress, onMissingPingCommand)
-      )
+      settings.ipAddresses.map(async ipAddress => {
+        debugLog(device, `Monitor: ping probe ${ipAddress}`)
+        return probePing(ipAddress, onMissingPingCommand)
+      })
     ),
   ])
 
+  const formatProbeRow = (ips: string[], results: boolean[]) =>
+    ips
+      .map((ip, index) => `${ip}:${results[index] === true ? 'ok' : 'no'}`)
+      .join(', ')
+
+  const sshRow = formatProbeRow(settings.ipAddresses, sshResults)
+  const pingRow = formatProbeRow(settings.ipAddresses, pingResults)
+
   if (sshResults.includes(true)) {
+    debugLog(
+      device,
+      `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=true warning=none`
+    )
     return {
       isOnline: true,
     }
   }
 
   if (pingResults.includes(true)) {
+    debugLog(
+      device,
+      `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=true warning=ssh_unavailable`
+    )
     return {
       isOnline: true,
       warning: SSH_UNAVAILABLE_WARNING,
     }
   }
+
+  debugLog(
+    device,
+    `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=false warning=none`
+  )
 
   return {
     isOnline: false,
@@ -107,14 +138,18 @@ async function refreshComputerState(device: Homey.Device): Promise<boolean> {
       `Polling computer status for ${settings.ipAddresses.join(', ') || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
     )
 
-    const connectionState = await pollComputerConnectionState(settings, () => {
-      if (state.pingCommandMissingLogged) {
-        return
-      }
+    const connectionState = await pollComputerConnectionState(
+      device,
+      settings,
+      () => {
+        if (state.pingCommandMissingLogged) {
+          return
+        }
 
-      state.pingCommandMissingLogged = true
-      device.error('Ping command is not available for fallback status checks')
-    })
+        state.pingCommandMissingLogged = true
+        device.error('Ping command is not available for fallback status checks')
+      }
+    )
 
     return await applyConnectionState(device, connectionState)
   } catch (error) {
@@ -132,11 +167,6 @@ async function applyConnectionState(
   const { isOnline, warning } = connectionState
   const previousConnected = device.getCapabilityValue('connected')
   const previousUptime = device.getCapabilityValue('uptime')
-
-  debugLog(
-    device,
-    `Poll result: online=${isOnline.toString()} warning=${warning ?? 'none'}`
-  )
 
   if (warning) {
     await device.setWarning(warning)
