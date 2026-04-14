@@ -7,9 +7,15 @@ import {
 } from '../constants.js'
 import { ComputerDriverSettings, TargetOs } from '../types.js'
 
-type RawComputerSettings = Partial<
-  Record<keyof ComputerDriverSettings, unknown>
->
+type RawComputerSettings = {
+  ipAddress?: unknown
+  macAddress?: unknown
+  pollIntervalSeconds?: unknown
+  targetOs?: unknown
+  sshUsername?: unknown
+  sshPassword?: unknown
+  sshPort?: unknown
+}
 
 const TARGET_OPERATING_SYSTEMS: ReadonlySet<TargetOs> = new Set([
   'windows',
@@ -20,29 +26,24 @@ const TARGET_OPERATING_SYSTEMS: ReadonlySet<TargetOs> = new Set([
 export function getComputerSettings(
   settings: RawComputerSettings
 ): ComputerDriverSettings {
-  const ipAddress = getTrimmedString(settings.ipAddress)
-  const pollIntervalSeconds = clampPollInterval(settings.pollIntervalSeconds)
-
   return {
-    ipAddress,
-    macAddress: getTrimmedString(settings.macAddress),
-    pollIntervalSeconds,
+    ipAddresses: parseCommaSeparatedSegments(settings.ipAddress),
+    macAddresses: parseCommaSeparatedSegments(settings.macAddress),
+    pollIntervalSeconds: clampPollInterval(settings.pollIntervalSeconds),
     targetOs: getTargetOs(settings.targetOs),
     sshUsername: getTrimmedString(settings.sshUsername),
     sshPassword: getTrimmedString(settings.sshPassword),
     sshPort: getPort(settings.sshPort),
-    wolBroadcastAddress: inferWolBroadcastAddress(ipAddress),
   }
 }
 
-function inferWolBroadcastAddress(ipAddress: string): string {
+export function inferWolBroadcastAddress(ipAddress: string): string {
   if (net.isIP(ipAddress) !== 4) {
     return DEFAULTS.WOL_BROADCAST_ADDRESS
   }
 
   const octets = ipAddress.split('.')
   octets[3] = '255'
-
   return octets.join('.')
 }
 
@@ -53,7 +54,7 @@ export function getPollIntervalMs(settings: ComputerDriverSettings): number {
 export function getProbeValidationError(
   settings: ComputerDriverSettings
 ): string | null {
-  const ipValidationError = getIpValidationError(settings.ipAddress)
+  const ipValidationError = getIpAddressesValidationError(settings.ipAddresses)
   if (ipValidationError) {
     return ipValidationError
   }
@@ -66,13 +67,19 @@ export function getProbeValidationError(
 }
 
 export function assertCanWake(settings: ComputerDriverSettings) {
-  const ipValidationError = getIpValidationError(settings.ipAddress)
+  const ipValidationError = getIpAddressesValidationError(settings.ipAddresses)
   if (ipValidationError) {
     throw new Error(ipValidationError)
   }
 
-  if (!isValidMacAddress(settings.macAddress)) {
-    throw new Error('Computer MAC must be a valid MAC address.')
+  if (settings.macAddresses.length === 0) {
+    throw new Error('At least one computer MAC address is required.')
+  }
+
+  for (const macAddress of settings.macAddresses) {
+    if (!isValidMacAddress(macAddress)) {
+      throw new Error('Computer MAC must be a valid MAC address.')
+    }
   }
 }
 
@@ -135,6 +142,17 @@ function getTrimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function parseCommaSeparatedSegments(value: unknown): string[] {
+  if (typeof value !== 'string') {
+    return []
+  }
+
+  return value
+    .split(',')
+    .map(part => part.trim())
+    .filter(part => part.length > 0)
+}
+
 function isValidMacAddress(value: string): boolean {
   return value.replaceAll(/[^a-fA-F0-9]/g, '').length === 12
 }
@@ -143,9 +161,15 @@ function isValidPort(value: number): boolean {
   return Number.isInteger(value) && value >= 1 && value <= 65535
 }
 
-function getIpValidationError(ipAddress: string): string | null {
-  if (net.isIP(ipAddress) !== 4) {
-    return 'Computer IP must be a valid IPv4 address.'
+function getIpAddressesValidationError(ipAddresses: string[]): string | null {
+  if (ipAddresses.length === 0) {
+    return 'At least one computer IP address is required.'
+  }
+
+  for (const ipAddress of ipAddresses) {
+    if (net.isIP(ipAddress) !== 4) {
+      return 'Computer IP must be a valid IPv4 address.'
+    }
   }
 
   return null

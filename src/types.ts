@@ -8,14 +8,13 @@ export type DeviceSettingsEvent = Parameters<
 >[0]
 
 export type ComputerDriverSettings = {
-  ipAddress: string
-  macAddress: string
+  ipAddresses: string[]
+  macAddresses: string[]
   pollIntervalSeconds: number
   targetOs: TargetOs
   sshUsername: string
   sshPassword: string
   sshPort: number
-  wolBroadcastAddress: string
 }
 
 export type Capability = (typeof REQUIRED_CAPABILITIES)[number]

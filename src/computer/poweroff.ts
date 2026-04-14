@@ -10,6 +10,28 @@ import { ComputerDriverSettings } from '../types.js'
 export async function shutdownComputerOverSsh(
   settings: ComputerDriverSettings
 ) {
+  try {
+    await Promise.any(
+      settings.ipAddresses.map(host =>
+        shutdownComputerOverSshOnHost(settings, host)
+      )
+    )
+  } catch (error) {
+    if (error instanceof AggregateError) {
+      const [firstError] = error.errors
+      if (firstError instanceof Error) {
+        throw firstError
+      }
+    }
+
+    throw error
+  }
+}
+
+async function shutdownComputerOverSshOnHost(
+  settings: ComputerDriverSettings,
+  host: string
+) {
   const command = SHUTDOWN_COMMANDS[settings.targetOs]
   const needsSudo = settings.targetOs !== 'windows'
 
@@ -87,7 +109,7 @@ export async function shutdownComputerOverSsh(
     })
 
     client.connect({
-      host: settings.ipAddress,
+      host,
       port: settings.sshPort,
       username: settings.sshUsername,
       password: settings.sshPassword,
