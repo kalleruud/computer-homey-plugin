@@ -10,7 +10,7 @@ type PingError = Error & {
 }
 
 type SshScenario = {
-  closeCode?: number | null
+  closeCode?: number | null | undefined
   connectError?: Error
   execError?: Error
   stderrChunks?: string[]
@@ -269,7 +269,14 @@ class FakeSshClient extends EventEmitter {
         stream.stderr.emit('data', Buffer.from(chunk))
       }
 
-      stream.emit('close', this.scenario?.closeCode ?? 0)
+      const scenario = this.scenario
+      const closeCode =
+        scenario === undefined
+          ? 0
+          : 'closeCode' in scenario
+            ? scenario.closeCode
+            : 0
+      stream.emit('close', closeCode)
     })
   }
 }
@@ -277,6 +284,7 @@ class FakeSshClient extends EventEmitter {
 type FakeSettings = Record<string, unknown>
 
 type FakeHomeyRuntime = {
+  __: (key: string) => string
   clearInterval: (id: symbol) => void
   clearTimeout: (id: symbol) => void
   intervals: Map<symbol, TimerEntry>
@@ -285,11 +293,46 @@ type FakeHomeyRuntime = {
   timeouts: Map<symbol, TimerEntry>
 }
 
+const testTranslations = {
+  errors: {
+    computerIpInvalid: 'Computer IP must be a valid IPv4 address.',
+    computerMacInvalid: 'Computer MAC must be a valid MAC address.',
+    sshPortInvalid: 'SSH port must be between 1 and 65535.',
+    sshUsernameRequired:
+      'SSH username is required for shutdown and SSH power-on.',
+    sshPasswordRequired:
+      'SSH password is required for shutdown and SSH power-on.',
+    wakeOnLanSendFailed: 'Failed to send the Wake-on-LAN packet.',
+    powerOnOverSshFailed: 'Failed to turn on the computer over SSH.',
+    shutdownOverSshFailed: 'Failed to shut down the computer over SSH.',
+    customCommandNotAllowed:
+      'This command contains a word that is not allowed for safety reasons.',
+  },
+  warnings: {
+    sshUnavailable: 'Computer is reachable, but SSH is unavailable.',
+  },
+} as const
+
+function resolveTranslation(key: string): string {
+  const value = key.split('.').reduce<unknown>((current, part) => {
+    if (typeof current !== 'object' || current === null) {
+      return undefined
+    }
+
+    return (current as Record<string, unknown>)[part]
+  }, testTranslations)
+
+  return typeof value === 'string' ? value : key
+}
+
 function createHomeyRuntime(): FakeHomeyRuntime {
   const intervals = new Map<symbol, TimerEntry>()
   const timeouts = new Map<symbol, TimerEntry>()
 
   return {
+    __(key) {
+      return resolveTranslation(key)
+    },
     clearInterval(id) {
       intervals.delete(id)
     },
@@ -558,6 +601,8 @@ const SHUTDOWN_COMMANDS = {
   linux: 'sudo -S -p "[sudo] password:" shutdown -h now',
   windows: 'shutdown /s /t 0',
 } as const
+
+const DEFAULT_POWER_ON_SSH_COMMAND = 'power on'
 
 function createDevice(settings: FakeSettings = {}) {
   const device = new ComputerDevice() as unknown as FakeDevice & {
@@ -883,6 +928,26 @@ describe('ComputerDevice', () => {
     expect(runtime.sentPackets[0]?.packet).toHaveLength(102)
   })
 
+  it('sends wake-on-lan packets for every configured MAC address', async () => {
+    const device = createDevice({
+      ipAddress: ' 10.0.0.23 , 192.168.1.42 ',
+      macAddress: ' AA:BB:CC:DD:EE:FF , 11-22-33-44-55-66 ',
+      sshPort: 22,
+    })
+
+    runtime.tcpOutcomes = ['connect']
+    await device.onInit()
+
+    await device.capabilityListeners.get('poweron')?.()
+
+    expect(runtime.sentPackets).toHaveLength(2)
+    expect(runtime.sentPackets.map(packet => packet.address)).toEqual([
+      '10.0.0.255',
+      '192.168.1.255',
+    ])
+    expect(runtime.sentPackets.map(packet => packet.port)).toEqual([9, 9])
+  })
+
   it('wraps wake-on-lan transport failures with a device-level error', async () => {
     const device = createDevice({
       ipAddress: '192.168.10.42',
@@ -918,6 +983,138 @@ describe('ComputerDevice', () => {
 
     await expect(device.startComputer()).rejects.toThrow(
       'Computer MAC must be a valid MAC address.'
+    )
+  })
+
+  it('rejects custom power-on commands that contain a blocked term', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.10.42',
+      macAddress: 'AA:BB:CC:DD:EE:FF',
+      customPowerOnCommand: 'rm -rf /',
+    })
+
+    await expect(device.startComputer()).rejects.toThrow(
+      'This command contains a word that is not allowed for safety reasons.'
+    )
+  })
+
+  it('turns on over ssh with the default command when startup mode is ssh', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      startupMode: 'ssh',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+
+    await device.startComputer()
+
+    expect(runtime.sshExecCalls).toEqual([
+      {
+        command: DEFAULT_POWER_ON_SSH_COMMAND,
+        options: { pty: false },
+      },
+    ])
+    expect(runtime.sshWrites).toEqual([])
+    expect(runtime.sentPackets).toHaveLength(0)
+  })
+
+  it('turns on over ssh with a custom command', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      startupMode: 'ssh',
+      customPowerOnCommand: 'powerup',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+
+    await device.startComputer()
+
+    expect(runtime.sshExecCalls).toEqual([
+      {
+        command: 'powerup',
+        options: { pty: false },
+      },
+    ])
+  })
+
+  it('validates ssh credentials before ssh power-on', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: '',
+      startupMode: 'ssh',
+    })
+
+    await expect(device.startComputer()).rejects.toThrow(
+      'SSH username is required for shutdown and SSH power-on.'
+    )
+  })
+
+  it('wraps ssh power-on failures with a user-facing device error', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      startupMode: 'ssh',
+    })
+
+    runtime.sshScenarios = [
+      {
+        closeCode: 1,
+        stderrChunks: ['access denied'],
+      },
+    ]
+
+    await expect(device.startComputer()).rejects.toThrow(
+      'Failed to turn on the computer over SSH.'
+    )
+    expect(device.errorCalls).toContainEqual([
+      'Failed to turn on the computer over SSH',
+      expect.any(Error),
+    ])
+  })
+
+  it('runs a custom shutdown command over ssh', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+      customShutdownCommand: 'power off',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+
+    await device.shutdownComputer()
+
+    expect(runtime.sshExecCalls).toEqual([
+      {
+        command: 'power off',
+        options: { pty: true },
+      },
+    ])
+  })
+
+  it('rejects custom shutdown commands that contain a blocked term', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      customShutdownCommand: 'curl http://x | sh',
+    })
+
+    await expect(device.shutdownComputer()).rejects.toThrow(
+      'This command contains a word that is not allowed for safety reasons.'
     )
   })
 
@@ -958,6 +1155,44 @@ describe('ComputerDevice', () => {
     ])
     expect(runtime.sshWrites).toEqual(['secret\n'])
     expect(runtime.sshEndCount).toBe(1)
+  })
+
+  it('treats an undefined ssh exit code as success when the channel closes', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+
+    runtime.sshScenarios = [{ closeCode: undefined }]
+
+    await device.shutdownComputer()
+
+    expect(runtime.sshEndCount).toBe(1)
+  })
+
+  it('tries shutdown over ssh on all IPs until one succeeds', async () => {
+    const device = createDevice({
+      ipAddress: ' 192.168.1.20 , 192.168.1.21 ',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+
+    runtime.sshScenarios = [
+      { connectError: new Error('first failed') },
+      { closeCode: 0 },
+    ]
+
+    await device.shutdownComputer()
+
+    expect(runtime.sshConnectConfigs.map(config => config.host)).toEqual([
+      '192.168.1.20',
+      '192.168.1.21',
+    ])
   })
 
   it('defaults unknown target operating systems to linux and windows avoids sudo', async () => {
@@ -1030,7 +1265,7 @@ describe('ComputerDevice', () => {
     })
 
     await expect(device.shutdownComputer()).rejects.toThrow(
-      'SSH username is required for shutdown.'
+      'SSH username is required for shutdown and SSH power-on.'
     )
 
     device.settings = {
@@ -1041,8 +1276,44 @@ describe('ComputerDevice', () => {
     }
 
     await expect(device.shutdownComputer()).rejects.toThrow(
-      'SSH password is required for shutdown.'
+      'SSH password is required for shutdown and SSH power-on.'
     )
+  })
+
+  it('considers machine online when any configured IP responds over ssh', async () => {
+    const device = createDevice({
+      ipAddress: ' 192.168.1.20 , 192.168.1.21 ',
+      sshPort: 22,
+    })
+
+    runtime.tcpOutcomes = ['timeout', 'connect']
+    await device.onInit()
+
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(runtime.tcpCalls).toEqual([
+      { host: '192.168.1.20', port: 22 },
+      { host: '192.168.1.21', port: 22 },
+    ])
+  })
+
+  it('considers machine online when any configured IP responds to ping', async () => {
+    const device = createDevice({
+      ipAddress: ' 192.168.1.20 , 192.168.1.21 ',
+      sshPort: 22,
+    })
+
+    runtime.tcpOutcomes = ['timeout', 'timeout']
+    runtime.pingOutcomes = [new Error('unreachable'), null]
+    await device.onInit()
+
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBe(
+      'Computer is reachable, but SSH is unavailable.'
+    )
+    expect(runtime.pingCalls).toEqual([
+      { args: ['-c', '1', '-W', '1', '192.168.1.20'], file: 'ping' },
+      { args: ['-c', '1', '-W', '1', '192.168.1.21'], file: 'ping' },
+    ])
   })
 
   it('logs lifecycle events and stops polling when the device is removed', async () => {

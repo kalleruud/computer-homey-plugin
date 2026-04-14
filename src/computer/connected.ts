@@ -1,7 +1,7 @@
 import type Homey from 'homey'
 import { execFile } from 'node:child_process'
 import net from 'node:net'
-import { POLL_TIMEOUT_MS, SSH_UNAVAILABLE_WARNING } from '../constants.js'
+import { POLL_TIMEOUT_MS, SSH_UNAVAILABLE_WARNING_KEY } from '../constants.js'
 import { debugLog, getDeviceState } from '../lib.js'
 import { ComputerDriverSettings } from '../types.js'
 import {
@@ -48,37 +48,73 @@ export async function startPolling(device: Homey.Device) {
 }
 
 async function pollComputerConnectionState(
+  device: Homey.Device,
   settings: ComputerDriverSettings,
   onMissingPingCommand: () => void
 ): Promise<ComputerConnectionState> {
   const validationError = getProbeValidationError(settings)
   if (validationError) {
+    debugLog(
+      device,
+      `Monitor: probes skipped (invalid settings) online=false warning=${validationError}`
+    )
     return {
       isOnline: false,
       warning: validationError,
     }
   }
 
-  const isSshReachable = await probeTcpPort(
-    settings.ipAddress,
-    settings.sshPort
-  )
-  if (isSshReachable) {
+  const [sshResults, pingResults] = await Promise.all([
+    Promise.all(
+      settings.ipAddresses.map(async ipAddress => {
+        debugLog(
+          device,
+          `Monitor: ssh probe ${ipAddress}:${settings.sshPort.toString()}`
+        )
+        return probeTcpPort(ipAddress, settings.sshPort)
+      })
+    ),
+    Promise.all(
+      settings.ipAddresses.map(async ipAddress => {
+        debugLog(device, `Monitor: ping probe ${ipAddress}`)
+        return probePing(ipAddress, onMissingPingCommand)
+      })
+    ),
+  ])
+
+  const formatProbeRow = (ips: string[], results: boolean[]) =>
+    ips
+      .map((ip, index) => `${ip}:${results[index] === true ? 'ok' : 'no'}`)
+      .join(', ')
+
+  const sshRow = formatProbeRow(settings.ipAddresses, sshResults)
+  const pingRow = formatProbeRow(settings.ipAddresses, pingResults)
+
+  if (sshResults.includes(true)) {
+    debugLog(
+      device,
+      `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=true warning=none`
+    )
     return {
       isOnline: true,
     }
   }
 
-  const isPingReachable = await probePing(
-    settings.ipAddress,
-    onMissingPingCommand
-  )
-  if (isPingReachable) {
+  if (pingResults.includes(true)) {
+    debugLog(
+      device,
+      `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=true warning=ssh_unavailable`
+    )
     return {
       isOnline: true,
-      warning: SSH_UNAVAILABLE_WARNING,
+      warning: SSH_UNAVAILABLE_WARNING_KEY,
     }
   }
+
+  debugLog(
+    device,
+    `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=false warning=none`
+  )
 
   return {
     isOnline: false,
@@ -99,17 +135,21 @@ async function refreshComputerState(device: Homey.Device): Promise<boolean> {
 
     debugLog(
       device,
-      `Polling computer status for ${settings.ipAddress || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
+      `Polling computer status for ${settings.ipAddresses.join(', ') || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
     )
 
-    const connectionState = await pollComputerConnectionState(settings, () => {
-      if (state.pingCommandMissingLogged) {
-        return
-      }
+    const connectionState = await pollComputerConnectionState(
+      device,
+      settings,
+      () => {
+        if (state.pingCommandMissingLogged) {
+          return
+        }
 
-      state.pingCommandMissingLogged = true
-      device.error('Ping command is not available for fallback status checks')
-    })
+        state.pingCommandMissingLogged = true
+        device.error('Ping command is not available for fallback status checks')
+      }
+    )
 
     return await applyConnectionState(device, connectionState)
   } catch (error) {
@@ -128,13 +168,8 @@ async function applyConnectionState(
   const previousConnected = device.getCapabilityValue('connected')
   const previousUptime = device.getCapabilityValue('uptime')
 
-  debugLog(
-    device,
-    `Poll result: online=${isOnline.toString()} warning=${warning ?? 'none'}`
-  )
-
   if (warning) {
-    await device.setWarning(warning)
+    await device.setWarning(device.homey.__(warning))
   } else {
     await device.unsetWarning()
   }

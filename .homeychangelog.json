@@ -1,8 +1,14 @@
 {
+  "1.0.2": {
+    "en": "Added Norwegian translations across the app and Flow cards; comma-separated IP and MAC lists so Wake-on-LAN targets every configured MAC, shutdown tries SSH on each listed IP until one succeeds, and the device shows online when any address responds; SSH startup mode alongside Wake-on-LAN with optional custom power-on and shutdown commands validated against a safety blocklist; a fix for crashes when SSH shutdown ended without an exit code; and device settings grouped into Computer and SSH sections.",
+    "no": "La til norsk oversettelse i appen og Flow-kortene; kommaseparerte IP- og MAC-lister slik at Wake-on-LAN treffer alle konfigurerte MAC-adresser, avslåing prøver SSH på hver oppgitt IP til én lykkes og enheten vises som online når minst én adresse svarer; SSH-startmodus ved siden av Wake-on-LAN med valgfrie tilpassede på- og av-kommandoer som valideres mot en sikkerhetsblokkeringsliste; fiks for krasj når SSH-avslåing avsluttet uten avslutningskode; og enhetsinnstillinger samlet under Datamaskin og SSH."
+  },
   "1.0.1": {
-    "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring."
+    "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring.",
+    "no": "La til strøm- og oppetidskapabiliteter, flere datamaskin-Flow-kort og forbedret overvåking av tilkobling."
   },
   "1.0.0": {
-    "en": "First release of Computer for Homey with Wake-on-LAN startup, online monitoring, SSH shutdown, Flow actions, and per-computer settings."
+    "en": "First release of Computer for Homey with Wake-on-LAN startup, online monitoring, SSH shutdown, Flow actions, and per-computer settings.",
+    "no": "Første utgivelse av Datamaskin for Homey med Wake-on-LAN-start, overvåking av online-status, SSH-avslåing, Flow-handlinger og innstillinger per datamaskin."
   }
 }

@@ -2,10 +2,12 @@
   "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
   "type": "number",
   "title": {
-    "en": "Uptime"
+    "en": "Uptime",
+    "no": "Levetid"
   },
   "desc": {
-    "en": "How long the computer has been running"
+    "en": "How long the computer has been running",
+    "no": "Hvor lenge datamaskinen har vært i gang"
   },
   "icon": "/assets/icons/timer.svg",
   "units": "min",
@@ -21,13 +23,15 @@
         "id": "measure_uptime_changed",
         "highlight": true,
         "title": {
-          "en": "The uptime changed"
+          "en": "The uptime changed",
+          "no": "Levetiden ble endret"
         },
         "tokens": [
           {
             "name": "measure_uptime",
             "title": {
-              "en": "Minutes"
+              "en": "Minutes",
+              "no": "Minutter"
             },
             "type": "number",
             "example": 10

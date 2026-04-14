@@ -1,20 +1,37 @@
 {
   "$schema": "../schemas/app.schema.json",
   "id": "no.kallerud.computer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "compatibility": ">=12.2.0",
   "sdk": 3,
-  "platforms": ["local"],
+  "platforms": [
+    "local"
+  ],
   "name": {
-    "en": "Computer"
+    "en": "Computer",
+    "no": "Datamaskin"
   },
   "description": {
-    "en": "Wake, monitor, and power down your computer from Homey."
+    "en": "Wake, monitor, and power down your computer from Homey.",
+    "no": "Start, overvåk og slå av datamaskinen din fra Homey."
   },
   "brandColor": "#CE5939",
-  "category": ["tools"],
+  "category": [
+    "tools"
+  ],
   "tags": {
-    "en": ["computer", "wake-on-lan", "ssh", "network"]
+    "en": [
+      "computer",
+      "wake-on-lan",
+      "ssh",
+      "network"
+    ],
+    "no": [
+      "datamaskin",
+      "wake-on-lan",
+      "ssh",
+      "nettverk"
+    ]
   },
   "permissions": [],
   "images": {

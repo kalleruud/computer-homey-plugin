@@ -3,35 +3,42 @@
     {
       "id": "computer_turned_on",
       "title": {
-        "en": "Turned on"
+        "en": "Turned on",
+        "no": "Slått på"
       },
       "hint": {
-        "en": "Triggers when this computer turns on."
+        "en": "Triggers when this computer turns on.",
+        "no": "Utløses når denne datamaskinen slås på."
       }
     },
     {
       "id": "computer_turned_off",
       "title": {
-        "en": "Turned off"
+        "en": "Turned off",
+        "no": "Slått av"
       },
       "hint": {
-        "en": "Triggers when this computer turns off."
+        "en": "Triggers when this computer turns off.",
+        "no": "Utløses når denne datamaskinen slås av."
       }
     },
     {
       "id": "computer_uptime_changed",
       "title": {
-        "en": "Uptime changed"
+        "en": "Uptime changed",
+        "no": "Levetid endret"
       },
       "hint": {
-        "en": "Triggers when this computer's uptime changes."
+        "en": "Triggers when this computer's uptime changes.",
+        "no": "Utløses når oppetiden til denne datamaskinen endres."
       },
       "tokens": [
         {
           "name": "uptime",
           "type": "number",
           "title": {
-            "en": "Uptime"
+            "en": "Uptime",
+            "no": "Levetid"
           }
         }
       ]
@@ -41,10 +48,12 @@
     {
       "id": "computer_is_on",
       "title": {
-        "en": "It !{{is on|is off}}"
+        "en": "It !{{is on|is off}}",
+        "no": "Den !{{er på|er av}}"
       },
       "hint": {
-        "en": "Checks whether this computer is on."
+        "en": "Checks whether this computer is on.",
+        "no": "Sjekker om denne datamaskinen er på."
       }
     }
   ],
@@ -52,19 +61,23 @@
     {
       "id": "computer_turn_on",
       "title": {
-        "en": "Turn on"
+        "en": "Turn on",
+        "no": "Slå på"
       },
       "hint": {
-        "en": "Turns this computer on with Wake-on-LAN."
+        "en": "Turns this computer on using its startup mode (Wake-on-LAN or SSH).",
+        "no": "Slår på denne datamaskinen med enhetens startmodus (Wake-on-LAN eller SSH)."
       }
     },
     {
       "id": "computer_turn_off",
       "title": {
-        "en": "Turn off"
+        "en": "Turn off",
+        "no": "Slå av"
       },
       "hint": {
-        "en": "Turns this computer off over SSH."
+        "en": "Turns this computer off over SSH.",
+        "no": "Slår av denne datamaskinen via SSH."
       }
     }
   ]

@@ -5,13 +5,15 @@ export const DEFAULTS = {
   WOL_PORT: 9, // Usually 9 or 7
 } as const
 
+/** Default non-interactive command for BMC-style SSH shells (e.g. iDRAC, IMM). */
+export const DEFAULT_POWER_ON_SSH_COMMAND = 'power on' as const
+
 export const MIN_POLL_INTERVAL_SECONDS = 10
 export const MAX_POLL_INTERVAL_SECONDS = 3600
 export const POLL_TIMEOUT_MS = 3000
 export const SSH_READY_TIMEOUT_MS = 10_000
 export const SUDO_PROMPT = '[sudo] password:'
-export const SSH_UNAVAILABLE_WARNING =
-  'Computer is reachable, but SSH is unavailable.'
+export const SSH_UNAVAILABLE_WARNING_KEY = 'warnings.sshUnavailable'
 
 export const SHUTDOWN_COMMANDS = {
   windows: 'shutdown /s /t 0',
