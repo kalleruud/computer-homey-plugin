@@ -1,6 +1,8 @@
 {
   "errors": {
+    "computerIpRequired": "Minst én datamaskin-IP-adresse er påkrevd.",
     "computerIpInvalid": "Datamaskin-IP må være en gyldig IPv4-adresse.",
+    "computerMacRequired": "Minst én datamaskin-MAC-adresse er påkrevd.",
     "computerMacInvalid": "Datamaskin-MAC må være en gyldig MAC-adresse.",
     "sshPortInvalid": "SSH-port må være mellom 1 og 65535.",
     "sshUsernameRequired": "SSH-brukernavn er påkrevd for avslåing.",

@@ -1,6 +1,7 @@
 {
   "1.0.2": {
-    "en": "Added comma-separated multi-IP and multi-MAC support for wake, shutdown, and monitoring checks."
+    "en": "Added comma-separated multi-IP and multi-MAC support for wake, shutdown, and monitoring checks.",
+    "no": "La til kommaseparert støtte for flere IP- og MAC-adresser for oppvåkning, avslåing og overvåkingskontroller."
   },
   "1.0.1": {
     "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring.",

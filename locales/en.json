@@ -1,6 +1,8 @@
 {
   "errors": {
+    "computerIpRequired": "At least one computer IP address is required.",
     "computerIpInvalid": "Computer IP must be a valid IPv4 address.",
+    "computerMacRequired": "At least one computer MAC address is required.",
     "computerMacInvalid": "Computer MAC must be a valid MAC address.",
     "sshPortInvalid": "SSH port must be between 1 and 65535.",
     "sshUsernameRequired": "SSH username is required for shutdown.",
