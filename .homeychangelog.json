@@ -1,7 +1,7 @@
 {
   "1.0.2": {
-    "en": "Added Norwegian language support and comma-separated multi-IP and multi-MAC support for wake, shutdown, and monitoring checks, and fixed a crash when SSH shutdown closed without an exit code.",
-    "no": "La til norsk språkstøtte og kommaseparert støtte for flere IP- og MAC-adresser for oppvåkning, avslåing og overvåkingskontroller, og fikset et krasj når SSH-avslåing lukket uten avslutningskode."
+    "en": "Added Norwegian language support and comma-separated multi-IP and multi-MAC support for wake, shutdown, and monitoring checks, fixed a crash when SSH shutdown closed without an exit code, and added SSH-based power-on with optional custom power-on and shutdown commands and an expanded safety blocklist.",
+    "no": "La til norsk språkstøtte og kommaseparert støtte for flere IP- og MAC-adresser for oppvåkning, avslåing og overvåkingskontroller, fikset et krasj når SSH-avslåing lukket uten avslutningskode, og la til SSH-basert påslåing med valgfrie tilpassede på- og av-kommandoer og en utvidet sikkerhetsblokkeringsliste."
   },
   "1.0.1": {
     "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring.",

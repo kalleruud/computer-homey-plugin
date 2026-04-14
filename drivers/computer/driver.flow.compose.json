@@ -65,8 +65,8 @@
         "no": "Slå på"
       },
       "hint": {
-        "en": "Turns this computer on with Wake-on-LAN.",
-        "no": "Slår på denne datamaskinen med Wake-on-LAN."
+        "en": "Turns this computer on using its startup mode (Wake-on-LAN or SSH).",
+        "no": "Slår på denne datamaskinen med enhetens startmodus (Wake-on-LAN eller SSH)."
       }
     },
     {
