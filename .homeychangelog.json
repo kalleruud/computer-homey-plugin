@@ -1,6 +1,6 @@
 {
   "1.0.2": {
-    "en": "Added comma-separated multi-IP and multi-MAC support for wake, shutdown, and monitoring checks."
+    "en": "Added comma-separated multi-IP and multi-MAC support for wake, shutdown, and monitoring checks, and fixed a crash when SSH shutdown closed without an exit code."
   },
   "1.0.1": {
     "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring."

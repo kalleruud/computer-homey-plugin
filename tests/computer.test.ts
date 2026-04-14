@@ -10,7 +10,7 @@ type PingError = Error & {
 }
 
 type SshScenario = {
-  closeCode?: number | null
+  closeCode?: number | null | undefined
   connectError?: Error
   execError?: Error
   stderrChunks?: string[]
@@ -269,7 +269,14 @@ class FakeSshClient extends EventEmitter {
         stream.stderr.emit('data', Buffer.from(chunk))
       }
 
-      stream.emit('close', this.scenario?.closeCode ?? 0)
+      const scenario = this.scenario
+      const closeCode =
+        scenario === undefined
+          ? 0
+          : 'closeCode' in scenario
+            ? scenario.closeCode
+            : 0
+      stream.emit('close', closeCode)
     })
   }
 }
@@ -977,6 +984,22 @@ describe('ComputerDevice', () => {
       },
     ])
     expect(runtime.sshWrites).toEqual(['secret\n'])
+    expect(runtime.sshEndCount).toBe(1)
+  })
+
+  it('treats an undefined ssh exit code as success when the channel closes', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+
+    runtime.sshScenarios = [{ closeCode: undefined }]
+
+    await device.shutdownComputer()
+
     expect(runtime.sshEndCount).toBe(1)
   })
 
