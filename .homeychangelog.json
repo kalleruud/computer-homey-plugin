@@ -1,11 +1,14 @@
 {
   "1.0.2": {
-    "en": "Added comma-separated multi-IP and multi-MAC support for wake, shutdown, and monitoring checks."
+    "en": "Added Norwegian language support and comma-separated multi-IP and multi-MAC support for wake, shutdown, and monitoring checks.",
+    "no": "La til norsk språkstøtte og kommaseparert støtte for flere IP- og MAC-adresser for oppvåkning, avslåing og overvåkingskontroller."
   },
   "1.0.1": {
-    "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring."
+    "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring.",
+    "no": "La til strøm- og oppetidskapabiliteter, flere datamaskin-Flow-kort og forbedret overvåking av tilkobling."
   },
   "1.0.0": {
-    "en": "First release of Computer for Homey with Wake-on-LAN startup, online monitoring, SSH shutdown, Flow actions, and per-computer settings."
+    "en": "First release of Computer for Homey with Wake-on-LAN startup, online monitoring, SSH shutdown, Flow actions, and per-computer settings.",
+    "no": "Første utgivelse av Datamaskin for Homey med Wake-on-LAN-start, overvåking av online-status, SSH-avslåing, Flow-handlinger og innstillinger per datamaskin."
   }
 }

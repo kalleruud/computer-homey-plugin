@@ -57,25 +57,55 @@ export default class ComputerDevice extends Homey.Device {
 
   async startComputer() {
     const settings = getComputerSettings(this.getSettings())
-    assertCanWake(settings)
+    try {
+      assertCanWake(settings)
+    } catch (error) {
+      throw new Error(this.translateError(error))
+    }
 
     try {
       await sendWakeOnLan(settings)
     } catch (error) {
+      if (isErrorWithTranslationKey(error)) {
+        throw new Error(this.homey.__(error.message))
+      }
+
       this.error('Failed to send a Wake-on-LAN packet', error)
-      throw new Error('Failed to send the Wake-on-LAN packet.')
+      throw new Error(this.homey.__('errors.wakeOnLanSendFailed'))
     }
   }
 
   async shutdownComputer() {
     const settings = getComputerSettings(this.getSettings())
-    assertCanShutdown(settings)
+    try {
+      assertCanShutdown(settings)
+    } catch (error) {
+      throw new Error(this.translateError(error))
+    }
 
     try {
       await shutdownComputer(settings)
     } catch (error) {
       this.error('Failed to shut down the computer over SSH', error)
-      throw new Error('Failed to shut down the computer over SSH.')
+      throw new Error(this.homey.__('errors.shutdownOverSshFailed'))
     }
   }
+
+  private translateError(error: unknown): string {
+    if (isErrorWithTranslationKey(error)) {
+      return this.homey.__(error.message)
+    }
+
+    if (error instanceof Error) {
+      return error.message
+    }
+
+    return 'Unknown error'
+  }
+}
+
+function isErrorWithTranslationKey(
+  error: unknown
+): error is Error & { message: `errors.${string}` } {
+  return error instanceof Error && error.message.startsWith('errors.')
 }

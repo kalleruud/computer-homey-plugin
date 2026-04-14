@@ -1,10 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
   "title": {
-    "en": "Turn off"
+    "en": "Turn off",
+    "no": "Slå av"
   },
   "desc": {
-    "en": "Turns the computer off"
+    "en": "Turns the computer off",
+    "no": "Slår av datamaskinen"
   },
   "type": "boolean",
   "getable": false,
@@ -16,7 +18,8 @@
       {
         "id": "press",
         "title": {
-          "en": "Turn off the computer"
+          "en": "Turn off the computer",
+          "no": "Slå av datamaskinen"
         }
       }
     ]

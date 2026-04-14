@@ -1,8 +1,10 @@
 {
   "title": {
-    "en": "All computers !{{are on|are off}}"
+    "en": "All computers !{{are on|are off}}",
+    "no": "Alle datamaskiner !{{er på|er av}}"
   },
   "hint": {
-    "en": "Checks whether all computers are on."
+    "en": "Checks whether all computers are on.",
+    "no": "Sjekker om alle datamaskiner er på."
   }
 }
