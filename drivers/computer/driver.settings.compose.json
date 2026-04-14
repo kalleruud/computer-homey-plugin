@@ -2,17 +2,20 @@
   {
     "type": "group",
     "label": {
-      "en": "Computer"
+      "en": "Computer",
+      "no": "Datamaskin"
     },
     "children": [
       {
         "id": "ipAddress",
         "type": "text",
         "label": {
-          "en": "Computer IP"
+          "en": "Computer IP",
+          "no": "Datamaskin-IP"
         },
         "hint": {
-          "en": "One or more IPv4 addresses, comma-separated."
+          "en": "One or more IPv4 addresses, comma-separated.",
+          "no": "En eller flere IPv4-adresser, kommaseparert."
         },
         "value": "",
         "highlight": true
@@ -21,10 +24,12 @@
         "id": "macAddress",
         "type": "text",
         "label": {
-          "en": "Computer MAC"
+          "en": "Computer MAC",
+          "no": "Datamaskin-MAC"
         },
         "hint": {
-          "en": "One or more MAC addresses, comma-separated."
+          "en": "One or more MAC addresses, comma-separated.",
+          "no": "En eller flere MAC-adresser, kommaseparert."
         },
         "value": "",
         "highlight": true
@@ -33,17 +38,20 @@
         "id": "pollIntervalSeconds",
         "type": "number",
         "label": {
-          "en": "Poll interval"
+          "en": "Poll interval",
+          "no": "Oppdateringsintervall"
         },
         "hint": {
-          "en": "How often Homey checks whether the computer is reachable."
+          "en": "How often Homey checks whether the computer is reachable.",
+          "no": "Hvor ofte Homey sjekker om datamaskinen er tilgjengelig."
         },
         "value": 60,
         "min": 10,
         "max": 3600,
         "step": 1,
         "units": {
-          "en": "seconds"
+          "en": "seconds",
+          "no": "sekunder"
         },
         "highlight": true
       }
@@ -52,33 +60,38 @@
   {
     "type": "group",
     "label": {
-      "en": "Shutdown over SSH"
+      "en": "Shutdown over SSH",
+      "no": "Slå av via SSH"
     },
     "children": [
       {
         "id": "targetOs",
         "type": "dropdown",
         "label": {
-          "en": "Operating system"
+          "en": "Operating system",
+          "no": "Operativsystem"
         },
         "value": "linux",
         "values": [
           {
             "id": "windows",
             "label": {
-              "en": "Windows"
+              "en": "Windows",
+              "no": "Windows"
             }
           },
           {
             "id": "linux",
             "label": {
-              "en": "Linux"
+              "en": "Linux",
+              "no": "Linux"
             }
           },
           {
             "id": "macos",
             "label": {
-              "en": "macOS"
+              "en": "macOS",
+              "no": "macOS"
             }
           }
         ]
@@ -87,10 +100,12 @@
         "id": "sshUsername",
         "type": "text",
         "label": {
-          "en": "SSH username"
+          "en": "SSH username",
+          "no": "SSH-brukernavn"
         },
         "hint": {
-          "en": "Required for remote shutdown."
+          "en": "Required for remote shutdown.",
+          "no": "Påkrevd for fjernavslåing."
         },
         "value": ""
       },
@@ -98,10 +113,12 @@
         "id": "sshPassword",
         "type": "password",
         "label": {
-          "en": "SSH password"
+          "en": "SSH password",
+          "no": "SSH-passord"
         },
         "hint": {
-          "en": "Required for remote shutdown."
+          "en": "Required for remote shutdown.",
+          "no": "Påkrevd for fjernavslåing."
         },
         "value": ""
       },
@@ -109,7 +126,8 @@
         "id": "sshPort",
         "type": "number",
         "label": {
-          "en": "SSH port"
+          "en": "SSH port",
+          "no": "SSH-port"
         },
         "value": 22,
         "min": 1,

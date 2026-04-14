@@ -1,8 +1,10 @@
 {
   "title": {
-    "en": "Turn all computers on"
+    "en": "Turn all computers on",
+    "no": "Slå på alle datamaskiner"
   },
   "hint": {
-    "en": "Turns all computers on with Wake-on-LAN."
+    "en": "Turns all computers on with Wake-on-LAN.",
+    "no": "Slår på alle datamaskiner med Wake-on-LAN."
   }
 }

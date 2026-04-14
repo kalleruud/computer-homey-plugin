@@ -1,6 +1,7 @@
 {
   "name": {
-    "en": "Computer"
+    "en": "Computer",
+    "no": "Datamaskin"
   },
   "class": "other",
   "platforms": ["local"],
