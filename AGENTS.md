@@ -16,3 +16,17 @@
 - Store release notes in `.homeychangelog.json`.
 - Each version must have a single-line entry keyed by `X.Y.Z`.
 - Keep changelog text concise, user-visible, and limited to a single sentence.
+
+## Cursor Cloud specific instructions
+
+- **Runtime**: Bun (installed via `curl -fsSL https://bun.sh/install | bash`). After install, ensure `~/.bun/bin` is on `PATH`.
+- **Node.js 22** is also required and available via nvm.
+- **Key commands** (all from repo root):
+  - `bun install` — install dependencies
+  - `bun run build` — TypeScript compilation (`tsc`)
+  - `bun run check` — full validation (Homey app validate + ESLint + Prettier + tsc --noEmit + knip)
+  - `bun run fix` — auto-fix lint/format/dead-code issues
+  - `bun test` — run tests with coverage (uses `bun:test`)
+- **`bun run dev`** requires a physical Homey device and prior `bunx homey login` / `bunx homey select`; it cannot run in CI or headless cloud environments.
+- The `punycode` deprecation warning from `homey app validate` is harmless and expected.
+- Coverage thresholds are configured in `bunfig.toml` (90% lines, 60% functions, 90% statements).
