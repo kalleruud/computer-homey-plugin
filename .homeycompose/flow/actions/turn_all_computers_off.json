@@ -1,8 +1,10 @@
 {
   "title": {
-    "en": "Turn all computers off"
+    "en": "Turn all computers off",
+    "no": "Slå av alle datamaskiner"
   },
   "hint": {
-    "en": "Turns all computers off over SSH."
+    "en": "Turns all computers off over SSH.",
+    "no": "Slår av alle datamaskiner via SSH."
   }
 }

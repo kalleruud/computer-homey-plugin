@@ -1,7 +1,7 @@
 import type Homey from 'homey'
 import { execFile } from 'node:child_process'
 import net from 'node:net'
-import { POLL_TIMEOUT_MS, SSH_UNAVAILABLE_WARNING } from '../constants.js'
+import { POLL_TIMEOUT_MS, SSH_UNAVAILABLE_WARNING_KEY } from '../constants.js'
 import { debugLog, getDeviceState } from '../lib.js'
 import { ComputerDriverSettings } from '../types.js'
 import {
@@ -76,7 +76,7 @@ async function pollComputerConnectionState(
   if (isPingReachable) {
     return {
       isOnline: true,
-      warning: SSH_UNAVAILABLE_WARNING,
+      warning: SSH_UNAVAILABLE_WARNING_KEY,
     }
   }
 
@@ -134,7 +134,7 @@ async function applyConnectionState(
   )
 
   if (warning) {
-    await device.setWarning(warning)
+    await device.setWarning(device.homey.__(warning))
   } else {
     await device.unsetWarning()
   }

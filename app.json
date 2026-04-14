@@ -8,10 +8,12 @@
     "local"
   ],
   "name": {
-    "en": "Computer"
+    "en": "Computer",
+    "no": "Datamaskin"
   },
   "description": {
-    "en": "Wake, monitor, and power down your computer from Homey."
+    "en": "Wake, monitor, and power down your computer from Homey.",
+    "no": "Start, overvåk og slå av datamaskinen din fra Homey."
   },
   "brandColor": "#CE5939",
   "category": [
@@ -23,6 +25,12 @@
       "wake-on-lan",
       "ssh",
       "network"
+    ],
+    "no": [
+      "datamaskin",
+      "wake-on-lan",
+      "ssh",
+      "nettverk"
     ]
   },
   "permissions": [],
@@ -40,29 +48,35 @@
     "triggers": [
       {
         "title": {
-          "en": "Any computer turned off"
+          "en": "Any computer turned off",
+          "no": "En datamaskin ble slått av"
         },
         "hint": {
-          "en": "Triggers when any computer turns off."
+          "en": "Triggers when any computer turns off.",
+          "no": "Utløses når en datamaskin slås av."
         },
         "id": "any_computer_turned_off"
       },
       {
         "title": {
-          "en": "Any computer turned on"
+          "en": "Any computer turned on",
+          "no": "En datamaskin ble slått på"
         },
         "hint": {
-          "en": "Triggers when any computer turns on."
+          "en": "Triggers when any computer turns on.",
+          "no": "Utløses når en datamaskin slås på."
         },
         "id": "any_computer_turned_on"
       },
       {
         "id": "computer_turned_on",
         "title": {
-          "en": "Turned on"
+          "en": "Turned on",
+          "no": "Slått på"
         },
         "hint": {
-          "en": "Triggers when this computer turns on."
+          "en": "Triggers when this computer turns on.",
+          "no": "Utløses når denne datamaskinen slås på."
         },
         "args": [
           {
@@ -75,10 +89,12 @@
       {
         "id": "computer_turned_off",
         "title": {
-          "en": "Turned off"
+          "en": "Turned off",
+          "no": "Slått av"
         },
         "hint": {
-          "en": "Triggers when this computer turns off."
+          "en": "Triggers when this computer turns off.",
+          "no": "Utløses når denne datamaskinen slås av."
         },
         "args": [
           {
@@ -91,17 +107,20 @@
       {
         "id": "computer_uptime_changed",
         "title": {
-          "en": "Uptime changed"
+          "en": "Uptime changed",
+          "no": "Oppetid endret"
         },
         "hint": {
-          "en": "Triggers when this computer's uptime changes."
+          "en": "Triggers when this computer's uptime changes.",
+          "no": "Utløses når oppetiden til denne datamaskinen endres."
         },
         "tokens": [
           {
             "name": "uptime",
             "type": "number",
             "title": {
-              "en": "Uptime"
+              "en": "Uptime",
+              "no": "Oppetid"
             }
           }
         ],
@@ -117,29 +136,35 @@
     "conditions": [
       {
         "title": {
-          "en": "All computers !{{are on|are off}}"
+          "en": "All computers !{{are on|are off}}",
+          "no": "Alle datamaskiner !{{er på|er av}}"
         },
         "hint": {
-          "en": "Checks whether all computers are on."
+          "en": "Checks whether all computers are on.",
+          "no": "Sjekker om alle datamaskiner er på."
         },
         "id": "all_computers_are_on"
       },
       {
         "title": {
-          "en": "Any computer !{{is on|is off}}"
+          "en": "Any computer !{{is on|is off}}",
+          "no": "En datamaskin !{{er på|er av}}"
         },
         "hint": {
-          "en": "Checks whether any computer is on."
+          "en": "Checks whether any computer is on.",
+          "no": "Sjekker om en datamaskin er på."
         },
         "id": "any_computer_is_on"
       },
       {
         "id": "computer_is_on",
         "title": {
-          "en": "It !{{is on|is off}}"
+          "en": "It !{{is on|is off}}",
+          "no": "Den !{{er på|er av}}"
         },
         "hint": {
-          "en": "Checks whether this computer is on."
+          "en": "Checks whether this computer is on.",
+          "no": "Sjekker om denne datamaskinen er på."
         },
         "args": [
           {
@@ -153,29 +178,35 @@
     "actions": [
       {
         "title": {
-          "en": "Turn all computers off"
+          "en": "Turn all computers off",
+          "no": "Slå av alle datamaskiner"
         },
         "hint": {
-          "en": "Turns all computers off over SSH."
+          "en": "Turns all computers off over SSH.",
+          "no": "Slår av alle datamaskiner via SSH."
         },
         "id": "turn_all_computers_off"
       },
       {
         "title": {
-          "en": "Turn all computers on"
+          "en": "Turn all computers on",
+          "no": "Slå på alle datamaskiner"
         },
         "hint": {
-          "en": "Turns all computers on with Wake-on-LAN."
+          "en": "Turns all computers on with Wake-on-LAN.",
+          "no": "Slår på alle datamaskiner med Wake-on-LAN."
         },
         "id": "turn_all_computers_on"
       },
       {
         "id": "computer_turn_on",
         "title": {
-          "en": "Turn on"
+          "en": "Turn on",
+          "no": "Slå på"
         },
         "hint": {
-          "en": "Turns this computer on with Wake-on-LAN."
+          "en": "Turns this computer on with Wake-on-LAN.",
+          "no": "Slår på denne datamaskinen med Wake-on-LAN."
         },
         "args": [
           {
@@ -188,10 +219,12 @@
       {
         "id": "computer_turn_off",
         "title": {
-          "en": "Turn off"
+          "en": "Turn off",
+          "no": "Slå av"
         },
         "hint": {
-          "en": "Turns this computer off over SSH."
+          "en": "Turns this computer off over SSH.",
+          "no": "Slår av denne datamaskinen via SSH."
         },
         "args": [
           {
@@ -206,7 +239,8 @@
   "drivers": [
     {
       "name": {
-        "en": "Computer"
+        "en": "Computer",
+        "no": "Datamaskin"
       },
       "class": "other",
       "platforms": [
@@ -248,17 +282,20 @@
         {
           "type": "group",
           "label": {
-            "en": "Computer"
+            "en": "Computer",
+            "no": "Datamaskin"
           },
           "children": [
             {
               "id": "ipAddress",
               "type": "text",
               "label": {
-                "en": "Computer IP"
+                "en": "Computer IP",
+                "no": "Datamaskin-IP"
               },
               "hint": {
-                "en": "IPv4 address of the computer to monitor and control."
+                "en": "IPv4 address of the computer to monitor and control.",
+                "no": "IPv4-adressen til datamaskinen som skal overvåkes og styres."
               },
               "value": "",
               "highlight": true
@@ -267,10 +304,12 @@
               "id": "macAddress",
               "type": "text",
               "label": {
-                "en": "Computer MAC"
+                "en": "Computer MAC",
+                "no": "Datamaskin-MAC"
               },
               "hint": {
-                "en": "MAC address used for Wake-on-LAN."
+                "en": "MAC address used for Wake-on-LAN.",
+                "no": "MAC-adresse brukt for Wake-on-LAN."
               },
               "value": "",
               "highlight": true
@@ -279,17 +318,20 @@
               "id": "pollIntervalSeconds",
               "type": "number",
               "label": {
-                "en": "Poll interval"
+                "en": "Poll interval",
+                "no": "Oppdateringsintervall"
               },
               "hint": {
-                "en": "How often Homey checks whether the computer is reachable."
+                "en": "How often Homey checks whether the computer is reachable.",
+                "no": "Hvor ofte Homey sjekker om datamaskinen er tilgjengelig."
               },
               "value": 60,
               "min": 10,
               "max": 3600,
               "step": 1,
               "units": {
-                "en": "seconds"
+                "en": "seconds",
+                "no": "sekunder"
               },
               "highlight": true
             }
@@ -298,33 +340,38 @@
         {
           "type": "group",
           "label": {
-            "en": "Shutdown over SSH"
+            "en": "Shutdown over SSH",
+            "no": "Slå av via SSH"
           },
           "children": [
             {
               "id": "targetOs",
               "type": "dropdown",
               "label": {
-                "en": "Operating system"
+                "en": "Operating system",
+                "no": "Operativsystem"
               },
               "value": "linux",
               "values": [
                 {
                   "id": "windows",
                   "label": {
-                    "en": "Windows"
+                    "en": "Windows",
+                    "no": "Windows"
                   }
                 },
                 {
                   "id": "linux",
                   "label": {
-                    "en": "Linux"
+                    "en": "Linux",
+                    "no": "Linux"
                   }
                 },
                 {
                   "id": "macos",
                   "label": {
-                    "en": "macOS"
+                    "en": "macOS",
+                    "no": "macOS"
                   }
                 }
               ]
@@ -333,10 +380,12 @@
               "id": "sshUsername",
               "type": "text",
               "label": {
-                "en": "SSH username"
+                "en": "SSH username",
+                "no": "SSH-brukernavn"
               },
               "hint": {
-                "en": "Required for remote shutdown."
+                "en": "Required for remote shutdown.",
+                "no": "Påkrevd for fjernavslåing."
               },
               "value": ""
             },
@@ -344,10 +393,12 @@
               "id": "sshPassword",
               "type": "password",
               "label": {
-                "en": "SSH password"
+                "en": "SSH password",
+                "no": "SSH-passord"
               },
               "hint": {
-                "en": "Required for remote shutdown."
+                "en": "Required for remote shutdown.",
+                "no": "Påkrevd for fjernavslåing."
               },
               "value": ""
             },
@@ -355,7 +406,8 @@
               "id": "sshPort",
               "type": "number",
               "label": {
-                "en": "SSH port"
+                "en": "SSH port",
+                "no": "SSH-port"
               },
               "value": 22,
               "min": 1,
@@ -371,10 +423,12 @@
     "connected": {
       "type": "boolean",
       "title": {
-        "en": "Turned on"
+        "en": "Turned on",
+        "no": "Slått på"
       },
       "desc": {
-        "en": "Whether the computer is on or off"
+        "en": "Whether the computer is on or off",
+        "no": "Om datamaskinen er på eller av"
       },
       "icon": "/assets/icons/zap.svg",
       "getable": true,
@@ -382,18 +436,22 @@
       "uiQuickAction": true,
       "insights": true,
       "insightsTitleTrue": {
-        "en": "Turned on"
+        "en": "Turned on",
+        "no": "Slått på"
       },
       "insightsTitleFalse": {
-        "en": "Turned off"
+        "en": "Turned off",
+        "no": "Slått av"
       }
     },
     "poweroff": {
       "title": {
-        "en": "Turn off"
+        "en": "Turn off",
+        "no": "Slå av"
       },
       "desc": {
-        "en": "Turns the computer off"
+        "en": "Turns the computer off",
+        "no": "Slår av datamaskinen"
       },
       "type": "boolean",
       "getable": false,
@@ -404,10 +462,12 @@
     },
     "poweron": {
       "title": {
-        "en": "Turn on"
+        "en": "Turn on",
+        "no": "Slå på"
       },
       "desc": {
-        "en": "Turns the computer on"
+        "en": "Turns the computer on",
+        "no": "Slår på datamaskinen"
       },
       "type": "boolean",
       "getable": false,
@@ -419,10 +479,12 @@
     "uptime": {
       "type": "number",
       "title": {
-        "en": "Uptime"
+        "en": "Uptime",
+        "no": "Oppetid"
       },
       "desc": {
-        "en": "How long the computer has been running"
+        "en": "How long the computer has been running",
+        "no": "Hvor lenge datamaskinen har vært i gang"
       },
       "icon": "/assets/icons/timer.svg",
       "units": "min",

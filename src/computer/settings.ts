@@ -17,6 +17,16 @@ const TARGET_OPERATING_SYSTEMS: ReadonlySet<TargetOs> = new Set([
   'macos',
 ])
 
+const ERROR_KEYS = {
+  computerIpInvalid: 'errors.computerIpInvalid',
+  computerMacInvalid: 'errors.computerMacInvalid',
+  sshPortInvalid: 'errors.sshPortInvalid',
+  sshUsernameRequired: 'errors.sshUsernameRequired',
+  sshPasswordRequired: 'errors.sshPasswordRequired',
+} as const
+
+type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
+
 export function getComputerSettings(
   settings: RawComputerSettings
 ): ComputerDriverSettings {
@@ -52,14 +62,14 @@ export function getPollIntervalMs(settings: ComputerDriverSettings): number {
 
 export function getProbeValidationError(
   settings: ComputerDriverSettings
-): string | null {
+): ErrorKey | null {
   const ipValidationError = getIpValidationError(settings.ipAddress)
   if (ipValidationError) {
     return ipValidationError
   }
 
   if (!isValidPort(settings.sshPort)) {
-    return 'SSH port must be between 1 and 65535.'
+    return ERROR_KEYS.sshPortInvalid
   }
 
   return null
@@ -72,7 +82,7 @@ export function assertCanWake(settings: ComputerDriverSettings) {
   }
 
   if (!isValidMacAddress(settings.macAddress)) {
-    throw new Error('Computer MAC must be a valid MAC address.')
+    throw new Error(ERROR_KEYS.computerMacInvalid)
   }
 }
 
@@ -83,11 +93,11 @@ export function assertCanShutdown(settings: ComputerDriverSettings) {
   }
 
   if (settings.sshUsername.length === 0) {
-    throw new Error('SSH username is required for shutdown.')
+    throw new Error(ERROR_KEYS.sshUsernameRequired)
   }
 
   if (settings.sshPassword.length === 0) {
-    throw new Error('SSH password is required for shutdown.')
+    throw new Error(ERROR_KEYS.sshPasswordRequired)
   }
 }
 
@@ -95,7 +105,7 @@ export function parseMacAddress(macAddress: string): Buffer {
   const normalizedMacAddress = macAddress.replaceAll(/[^a-fA-F0-9]/g, '')
 
   if (normalizedMacAddress.length !== 12) {
-    throw new Error('Computer MAC must be a valid MAC address.')
+    throw new Error(ERROR_KEYS.computerMacInvalid)
   }
 
   return Buffer.from(normalizedMacAddress, 'hex')
@@ -143,9 +153,9 @@ function isValidPort(value: number): boolean {
   return Number.isInteger(value) && value >= 1 && value <= 65535
 }
 
-function getIpValidationError(ipAddress: string): string | null {
+function getIpValidationError(ipAddress: string): ErrorKey | null {
   if (net.isIP(ipAddress) !== 4) {
-    return 'Computer IP must be a valid IPv4 address.'
+    return ERROR_KEYS.computerIpInvalid
   }
 
   return null

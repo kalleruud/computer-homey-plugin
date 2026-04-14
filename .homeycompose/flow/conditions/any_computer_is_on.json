@@ -1,8 +1,10 @@
 {
   "title": {
-    "en": "Any computer !{{is on|is off}}"
+    "en": "Any computer !{{is on|is off}}",
+    "no": "En datamaskin !{{er på|er av}}"
   },
   "hint": {
-    "en": "Checks whether any computer is on."
+    "en": "Checks whether any computer is on.",
+    "no": "Sjekker om en datamaskin er på."
   }
 }

@@ -1,8 +1,10 @@
 {
   "title": {
-    "en": "Any computer turned on"
+    "en": "Any computer turned on",
+    "no": "En datamaskin ble slått på"
   },
   "hint": {
-    "en": "Triggers when any computer turns on."
+    "en": "Triggers when any computer turns on.",
+    "no": "Utløses når en datamaskin slås på."
   }
 }

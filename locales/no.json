@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "computerIpInvalid": "Datamaskin-IP må være en gyldig IPv4-adresse.",
+    "computerMacInvalid": "Datamaskin-MAC må være en gyldig MAC-adresse.",
+    "sshPortInvalid": "SSH-port må være mellom 1 og 65535.",
+    "sshUsernameRequired": "SSH-brukernavn er påkrevd for avslåing.",
+    "sshPasswordRequired": "SSH-passord er påkrevd for avslåing.",
+    "wakeOnLanSendFailed": "Kunne ikke sende Wake-on-LAN-pakken.",
+    "shutdownOverSshFailed": "Kunne ikke slå av datamaskinen via SSH."
+  },
+  "warnings": {
+    "sshUnavailable": "Datamaskinen er tilgjengelig, men SSH er utilgjengelig."
+  }
+}

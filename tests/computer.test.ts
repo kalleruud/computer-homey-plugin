@@ -277,6 +277,7 @@ class FakeSshClient extends EventEmitter {
 type FakeSettings = Record<string, unknown>
 
 type FakeHomeyRuntime = {
+  __: (key: string) => string
   clearInterval: (id: symbol) => void
   clearTimeout: (id: symbol) => void
   intervals: Map<symbol, TimerEntry>
@@ -285,11 +286,41 @@ type FakeHomeyRuntime = {
   timeouts: Map<symbol, TimerEntry>
 }
 
+const testTranslations = {
+  errors: {
+    computerIpInvalid: 'Computer IP must be a valid IPv4 address.',
+    computerMacInvalid: 'Computer MAC must be a valid MAC address.',
+    sshPortInvalid: 'SSH port must be between 1 and 65535.',
+    sshUsernameRequired: 'SSH username is required for shutdown.',
+    sshPasswordRequired: 'SSH password is required for shutdown.',
+    wakeOnLanSendFailed: 'Failed to send the Wake-on-LAN packet.',
+    shutdownOverSshFailed: 'Failed to shut down the computer over SSH.',
+  },
+  warnings: {
+    sshUnavailable: 'Computer is reachable, but SSH is unavailable.',
+  },
+} as const
+
+function resolveTranslation(key: string): string {
+  const value = key.split('.').reduce<unknown>((current, part) => {
+    if (typeof current !== 'object' || current === null) {
+      return undefined
+    }
+
+    return (current as Record<string, unknown>)[part]
+  }, testTranslations)
+
+  return typeof value === 'string' ? value : key
+}
+
 function createHomeyRuntime(): FakeHomeyRuntime {
   const intervals = new Map<symbol, TimerEntry>()
   const timeouts = new Map<symbol, TimerEntry>()
 
   return {
+    __(key) {
+      return resolveTranslation(key)
+    },
     clearInterval(id) {
       intervals.delete(id)
     },
