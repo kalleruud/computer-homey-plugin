@@ -28,8 +28,8 @@
           "no": "Datamaskin-MAC"
         },
         "hint": {
-          "en": "One or more MAC addresses, comma-separated.",
-          "no": "En eller flere MAC-adresser, kommaseparert."
+          "en": "Required for Wake-on-LAN startup (comma-separated). Not used when startup mode is SSH.",
+          "no": "Påkrevd for Wake-on-LAN-start (kommaseparert). Brukes ikke når startmodus er SSH."
         },
         "value": "",
         "highlight": true
@@ -54,6 +54,53 @@
           "no": "sekunder"
         },
         "highlight": true
+      }
+    ]
+  },
+  {
+    "type": "group",
+    "label": {
+      "en": "Power on",
+      "no": "Slå på"
+    },
+    "children": [
+      {
+        "id": "startupMode",
+        "type": "dropdown",
+        "label": {
+          "en": "Startup mode",
+          "no": "Startmodus"
+        },
+        "value": "wol",
+        "values": [
+          {
+            "id": "wol",
+            "label": {
+              "en": "Wake-on-LAN",
+              "no": "Wake-on-LAN"
+            }
+          },
+          {
+            "id": "ssh",
+            "label": {
+              "en": "SSH (e.g. BMC)",
+              "no": "SSH (f.eks. BMC)"
+            }
+          }
+        ]
+      },
+      {
+        "id": "customPowerOnCommand",
+        "type": "text",
+        "label": {
+          "en": "Custom power-on command",
+          "no": "Tilpasset på-kommando"
+        },
+        "hint": {
+          "en": "Optional. Runs over SSH when startup mode is SSH. Leave empty to use the default (power on).",
+          "no": "Valgfritt. Kjøres via SSH når startmodus er SSH. La stå tom for standard (power on)."
+        },
+        "value": ""
       }
     ]
   },
@@ -104,8 +151,8 @@
           "no": "SSH-brukernavn"
         },
         "hint": {
-          "en": "Required for remote shutdown.",
-          "no": "Påkrevd for fjernavslåing."
+          "en": "Required for remote shutdown and for SSH power-on.",
+          "no": "Påkrevd for fjernavslåing og SSH-oppstart."
         },
         "value": ""
       },
@@ -117,8 +164,8 @@
           "no": "SSH-passord"
         },
         "hint": {
-          "en": "Required for remote shutdown.",
-          "no": "Påkrevd for fjernavslåing."
+          "en": "Required for remote shutdown and for SSH power-on.",
+          "no": "Påkrevd for fjernavslåing og SSH-oppstart."
         },
         "value": ""
       },
@@ -133,6 +180,19 @@
         "min": 1,
         "max": 65535,
         "step": 1
+      },
+      {
+        "id": "customShutdownCommand",
+        "type": "text",
+        "label": {
+          "en": "Custom shutdown command",
+          "no": "Tilpasset avslåingskommando"
+        },
+        "hint": {
+          "en": "Optional. Leave empty for the default command for the selected operating system.",
+          "no": "Valgfritt. La stå tom for standardkommando for valgt operativsystem."
+        },
+        "value": ""
       }
     ]
   }

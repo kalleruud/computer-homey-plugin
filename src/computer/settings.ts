@@ -5,12 +5,16 @@ import {
   MAX_POLL_INTERVAL_SECONDS,
   MIN_POLL_INTERVAL_SECONDS,
 } from '../constants.js'
-import { ComputerDriverSettings, TargetOs } from '../types.js'
+import { ComputerDriverSettings, StartupMode, TargetOs } from '../types.js'
+import { assertCustomSshCommandAllowed } from './command-safety.js'
 
 type RawComputerSettings = {
   ipAddress?: unknown
   macAddress?: unknown
   pollIntervalSeconds?: unknown
+  startupMode?: unknown
+  customPowerOnCommand?: unknown
+  customShutdownCommand?: unknown
   targetOs?: unknown
   sshUsername?: unknown
   sshPassword?: unknown
@@ -22,6 +26,8 @@ const TARGET_OPERATING_SYSTEMS: ReadonlySet<TargetOs> = new Set([
   'linux',
   'macos',
 ])
+
+const STARTUP_MODES: ReadonlySet<StartupMode> = new Set(['wol', 'ssh'])
 
 const ERROR_KEYS = {
   computerIpRequired: 'errors.computerIpRequired',
@@ -42,6 +48,9 @@ export function getComputerSettings(
     ipAddresses: parseCommaSeparatedSegments(settings.ipAddress),
     macAddresses: parseCommaSeparatedSegments(settings.macAddress),
     pollIntervalSeconds: clampPollInterval(settings.pollIntervalSeconds),
+    startupMode: getStartupMode(settings.startupMode),
+    customPowerOnCommand: getTrimmedString(settings.customPowerOnCommand),
+    customShutdownCommand: getTrimmedString(settings.customShutdownCommand),
     targetOs: getTargetOs(settings.targetOs),
     sshUsername: getTrimmedString(settings.sshUsername),
     sshPassword: getTrimmedString(settings.sshPassword),
@@ -79,6 +88,14 @@ export function getProbeValidationError(
 }
 
 export function assertCanWake(settings: ComputerDriverSettings) {
+  if (settings.startupMode === 'ssh') {
+    assertSshCredentials(settings)
+    if (settings.customPowerOnCommand.length > 0) {
+      assertCustomSshCommandAllowed(settings.customPowerOnCommand)
+    }
+    return
+  }
+
   const ipValidationError = getIpAddressesValidationError(settings.ipAddresses)
   if (ipValidationError) {
     throw new Error(ipValidationError)
@@ -93,9 +110,21 @@ export function assertCanWake(settings: ComputerDriverSettings) {
       throw new Error(ERROR_KEYS.computerMacInvalid)
     }
   }
+
+  if (settings.customPowerOnCommand.length > 0) {
+    assertCustomSshCommandAllowed(settings.customPowerOnCommand)
+  }
 }
 
 export function assertCanShutdown(settings: ComputerDriverSettings) {
+  assertSshCredentials(settings)
+
+  if (settings.customShutdownCommand.length > 0) {
+    assertCustomSshCommandAllowed(settings.customShutdownCommand)
+  }
+}
+
+function assertSshCredentials(settings: ComputerDriverSettings) {
   const validationError = getProbeValidationError(settings)
   if (validationError) {
     throw new Error(validationError)
@@ -148,6 +177,14 @@ function getTargetOs(value: unknown): TargetOs {
   }
 
   return 'linux'
+}
+
+function getStartupMode(value: unknown): StartupMode {
+  if (typeof value === 'string' && STARTUP_MODES.has(value as StartupMode)) {
+    return value as StartupMode
+  }
+
+  return 'wol'
 }
 
 function getTrimmedString(value: unknown): string {

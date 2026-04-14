@@ -1,6 +1,7 @@
 import Homey from 'homey'
 import { startPolling, stopPolling } from '../../src/computer/connected.js'
 import { shutdownComputerOverSsh as shutdownComputer } from '../../src/computer/poweroff.js'
+import { powerOnOverSsh } from '../../src/computer/poweron-ssh.js'
 import { sendWakeOnLan } from '../../src/computer/poweron.js'
 import {
   assertCanShutdown,
@@ -64,10 +65,19 @@ export default class ComputerDevice extends Homey.Device {
     }
 
     try {
-      await sendWakeOnLan(settings)
+      if (settings.startupMode === 'ssh') {
+        await powerOnOverSsh(settings)
+      } else {
+        await sendWakeOnLan(settings)
+      }
     } catch (error) {
       if (isErrorWithTranslationKey(error)) {
         throw new Error(this.homey.__(error.message))
+      }
+
+      if (settings.startupMode === 'ssh') {
+        this.error('Failed to turn on the computer over SSH', error)
+        throw new Error(this.homey.__('errors.powerOnOverSshFailed'))
       }
 
       this.error('Failed to send a Wake-on-LAN packet', error)

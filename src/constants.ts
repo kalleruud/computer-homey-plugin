@@ -5,6 +5,9 @@ export const DEFAULTS = {
   WOL_PORT: 9, // Usually 9 or 7
 } as const
 
+/** Default non-interactive command for BMC-style SSH shells (e.g. iDRAC, IMM). */
+export const DEFAULT_POWER_ON_SSH_COMMAND = 'power on' as const
+
 export const MIN_POLL_INTERVAL_SECONDS = 10
 export const MAX_POLL_INTERVAL_SECONDS = 3600
 export const POLL_TIMEOUT_MS = 3000

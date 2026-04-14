@@ -4,7 +4,7 @@
     "no": "Slå på alle datamaskiner"
   },
   "hint": {
-    "en": "Turns all computers on with Wake-on-LAN.",
-    "no": "Slår på alle datamaskiner med Wake-on-LAN."
+    "en": "Turns all computers on using each device's startup mode (Wake-on-LAN or SSH).",
+    "no": "Slår på alle datamaskiner med hver enhets startmodus (Wake-on-LAN eller SSH)."
   }
 }
