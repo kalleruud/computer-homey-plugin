@@ -12,7 +12,7 @@
           "en": "Computer IP"
         },
         "hint": {
-          "en": "IPv4 address of the computer to monitor and control."
+          "en": "One or more IPv4 addresses, comma-separated."
         },
         "value": "",
         "highlight": true
@@ -24,7 +24,7 @@
           "en": "Computer MAC"
         },
         "hint": {
-          "en": "MAC address used for Wake-on-LAN."
+          "en": "One or more MAC addresses, comma-separated."
         },
         "value": "",
         "highlight": true
