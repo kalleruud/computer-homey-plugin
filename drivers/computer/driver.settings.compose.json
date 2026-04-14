@@ -54,16 +54,7 @@
           "no": "sekunder"
         },
         "highlight": true
-      }
-    ]
-  },
-  {
-    "type": "group",
-    "label": {
-      "en": "Power on",
-      "no": "Slå på"
-    },
-    "children": [
+      },
       {
         "id": "startupMode",
         "type": "dropdown",
@@ -88,27 +79,14 @@
             }
           }
         ]
-      },
-      {
-        "id": "customPowerOnCommand",
-        "type": "text",
-        "label": {
-          "en": "Custom power-on command",
-          "no": "Tilpasset på-kommando"
-        },
-        "hint": {
-          "en": "Optional. Runs over SSH when startup mode is SSH. Leave empty to use the default (power on).",
-          "no": "Valgfritt. Kjøres via SSH når startmodus er SSH. La stå tom for standard (power on)."
-        },
-        "value": ""
       }
     ]
   },
   {
     "type": "group",
     "label": {
-      "en": "Shutdown over SSH",
-      "no": "Slå av via SSH"
+      "en": "SSH",
+      "no": "SSH"
     },
     "children": [
       {
@@ -180,6 +158,19 @@
         "min": 1,
         "max": 65535,
         "step": 1
+      },
+      {
+        "id": "customPowerOnCommand",
+        "type": "text",
+        "label": {
+          "en": "Custom power-on command",
+          "no": "Tilpasset på-kommando"
+        },
+        "hint": {
+          "en": "Optional. Runs over SSH when startup mode is SSH. Leave empty to use the default (power on).",
+          "no": "Valgfritt. Kjøres via SSH når startmodus er SSH. La stå tom for standard (power on)."
+        },
+        "value": ""
       },
       {
         "id": "customShutdownCommand",
