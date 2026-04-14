@@ -59,22 +59,29 @@ async function pollComputerConnectionState(
     }
   }
 
-  for (const ipAddress of settings.ipAddresses) {
-    const isSshReachable = await probeTcpPort(ipAddress, settings.sshPort)
-    if (isSshReachable) {
-      return {
-        isOnline: true,
-      }
+  const [sshResults, pingResults] = await Promise.all([
+    Promise.all(
+      settings.ipAddresses.map(ipAddress =>
+        probeTcpPort(ipAddress, settings.sshPort)
+      )
+    ),
+    Promise.all(
+      settings.ipAddresses.map(ipAddress =>
+        probePing(ipAddress, onMissingPingCommand)
+      )
+    ),
+  ])
+
+  if (sshResults.includes(true)) {
+    return {
+      isOnline: true,
     }
   }
 
-  for (const ipAddress of settings.ipAddresses) {
-    const isPingReachable = await probePing(ipAddress, onMissingPingCommand)
-    if (isPingReachable) {
-      return {
-        isOnline: true,
-        warning: SSH_UNAVAILABLE_WARNING,
-      }
+  if (pingResults.includes(true)) {
+    return {
+      isOnline: true,
+      warning: SSH_UNAVAILABLE_WARNING,
     }
   }
 

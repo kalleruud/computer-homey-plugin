@@ -10,20 +10,21 @@ import { ComputerDriverSettings } from '../types.js'
 export async function shutdownComputerOverSsh(
   settings: ComputerDriverSettings
 ) {
-  const errors: Error[] = []
-
-  for (const host of settings.ipAddresses) {
-    try {
-      await shutdownComputerOverSshOnHost(settings, host)
-      return
-    } catch (error) {
-      errors.push(error instanceof Error ? error : new Error(String(error)))
+  try {
+    await Promise.any(
+      settings.ipAddresses.map(host =>
+        shutdownComputerOverSshOnHost(settings, host)
+      )
+    )
+  } catch (error) {
+    if (error instanceof AggregateError) {
+      const [firstError] = error.errors
+      if (firstError instanceof Error) {
+        throw firstError
+      }
     }
-  }
 
-  const firstError = errors[0]
-  if (firstError) {
-    throw firstError
+    throw error
   }
 }
 
