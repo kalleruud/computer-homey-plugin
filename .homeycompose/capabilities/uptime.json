@@ -3,7 +3,7 @@
   "type": "number",
   "title": {
     "en": "Uptime",
-    "no": "Oppetid"
+    "no": "Levetid"
   },
   "desc": {
     "en": "How long the computer has been running",
@@ -24,7 +24,7 @@
         "highlight": true,
         "title": {
           "en": "The uptime changed",
-          "no": "Oppetiden ble endret"
+          "no": "Levetiden ble endret"
         },
         "tokens": [
           {

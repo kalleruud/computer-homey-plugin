@@ -108,7 +108,7 @@
         "id": "computer_uptime_changed",
         "title": {
           "en": "Uptime changed",
-          "no": "Oppetid endret"
+          "no": "Levetid endret"
         },
         "hint": {
           "en": "Triggers when this computer's uptime changes.",
@@ -120,7 +120,7 @@
             "type": "number",
             "title": {
               "en": "Uptime",
-              "no": "Oppetid"
+              "no": "Levetid"
             }
           }
         ],
@@ -480,7 +480,7 @@
       "type": "number",
       "title": {
         "en": "Uptime",
-        "no": "Oppetid"
+        "no": "Levetid"
       },
       "desc": {
         "en": "How long the computer has been running",
