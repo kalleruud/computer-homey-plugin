@@ -59,24 +59,22 @@ async function pollComputerConnectionState(
     }
   }
 
-  const isSshReachable = await probeTcpPort(
-    settings.ipAddress,
-    settings.sshPort
-  )
-  if (isSshReachable) {
-    return {
-      isOnline: true,
+  for (const ipAddress of settings.ipAddresses) {
+    const isSshReachable = await probeTcpPort(ipAddress, settings.sshPort)
+    if (isSshReachable) {
+      return {
+        isOnline: true,
+      }
     }
   }
 
-  const isPingReachable = await probePing(
-    settings.ipAddress,
-    onMissingPingCommand
-  )
-  if (isPingReachable) {
-    return {
-      isOnline: true,
-      warning: SSH_UNAVAILABLE_WARNING,
+  for (const ipAddress of settings.ipAddresses) {
+    const isPingReachable = await probePing(ipAddress, onMissingPingCommand)
+    if (isPingReachable) {
+      return {
+        isOnline: true,
+        warning: SSH_UNAVAILABLE_WARNING,
+      }
     }
   }
 
@@ -99,7 +97,7 @@ async function refreshComputerState(device: Homey.Device): Promise<boolean> {
 
     debugLog(
       device,
-      `Polling computer status for ${settings.ipAddress || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
+      `Polling computer status for ${settings.ipAddresses.join(', ') || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
     )
 
     const connectionState = await pollComputerConnectionState(settings, () => {
