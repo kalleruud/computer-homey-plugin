@@ -305,6 +305,8 @@ const testTranslations = {
     wakeOnLanSendFailed: 'Failed to send the Wake-on-LAN packet.',
     powerOnOverSshFailed: 'Failed to turn on the computer over SSH.',
     shutdownOverSshFailed: 'Failed to shut down the computer over SSH.',
+    sleepOverSshFailed: 'Failed to put the computer to sleep over SSH.',
+    hibernateOverSshFailed: 'Failed to hibernate the computer over SSH.',
     customCommandNotAllowed:
       'This command contains a word that is not allowed for safety reasons.',
   },
@@ -599,7 +601,21 @@ const { default: ComputerDriver } =
 
 const SHUTDOWN_COMMANDS = {
   linux: 'sudo -S -p "[sudo] password:" shutdown -h now',
+  macos: 'sudo -S -p "[sudo] password:" shutdown -h now',
   windows: 'shutdown /s /t 0',
+} as const
+
+const SLEEP_COMMANDS = {
+  linux: 'sudo -S -p "[sudo] password:" systemctl suspend',
+  macos: 'sudo -S -p "[sudo] password:" pmset sleepnow',
+  windows: 'rundll32.exe powrprof.dll,SetSuspendState 0,1,0',
+} as const
+
+const HIBERNATE_COMMANDS = {
+  linux: 'sudo -S -p "[sudo] password:" systemctl hibernate',
+  macos:
+    'sudo -S -p "[sudo] password:" sh -c \'pmset hibernatemode 25; pmset sleepnow\'',
+  windows: 'shutdown /h',
 } as const
 
 const DEFAULT_POWER_ON_SSH_COMMAND = 'power on'
@@ -658,17 +674,25 @@ describe('ComputerDriver', () => {
     }
     const startOnComputer = mock(async () => undefined)
     const shutdownOnComputer = mock(async () => undefined)
+    const sleepOnComputer = mock(async () => undefined)
+    const hibernateOnComputer = mock(async () => undefined)
     const startOffComputer = mock(async () => undefined)
     const shutdownOffComputer = mock(async () => undefined)
+    const sleepOffComputer = mock(async () => undefined)
+    const hibernateOffComputer = mock(async () => undefined)
     const onDevice = {
       getCapabilityValue: (capability: string) =>
         capability === 'connected' ? true : undefined,
       shutdownComputer: shutdownOnComputer,
+      sleepComputer: sleepOnComputer,
+      hibernateComputer: hibernateOnComputer,
       startComputer: startOnComputer,
     }
     const offDevice = {
       getCapabilityValue: () => false,
       shutdownComputer: shutdownOffComputer,
+      sleepComputer: sleepOffComputer,
+      hibernateComputer: hibernateOffComputer,
       startComputer: startOffComputer,
     }
 
@@ -710,13 +734,25 @@ describe('ComputerDriver', () => {
     await driver.actionCards
       .get('computer_turn_off')
       ?.runListener?.({ device: onDevice })
+    await driver.actionCards
+      .get('computer_sleep')
+      ?.runListener?.({ device: onDevice })
+    await driver.actionCards
+      .get('computer_hibernate')
+      ?.runListener?.({ device: onDevice })
     await driver.actionCards.get('turn_all_computers_on')?.runListener?.({})
     await driver.actionCards.get('turn_all_computers_off')?.runListener?.({})
+    await driver.actionCards.get('sleep_all_computers')?.runListener?.({})
+    await driver.actionCards.get('hibernate_all_computers')?.runListener?.({})
 
     expect(startOnComputer).toHaveBeenCalledTimes(2)
     expect(shutdownOnComputer).toHaveBeenCalledTimes(2)
+    expect(sleepOnComputer).toHaveBeenCalledTimes(2)
+    expect(hibernateOnComputer).toHaveBeenCalledTimes(2)
     expect(startOffComputer).toHaveBeenCalledTimes(1)
     expect(shutdownOffComputer).toHaveBeenCalledTimes(1)
+    expect(sleepOffComputer).toHaveBeenCalledTimes(1)
+    expect(hibernateOffComputer).toHaveBeenCalledTimes(1)
   })
 
   it('triggers the registered flow cards through helper methods', async () => {
@@ -797,11 +833,15 @@ describe('ComputerDevice', () => {
     expect([...device.capabilityListeners.keys()]).toEqual([
       'poweron',
       'poweroff',
+      'sleep',
+      'hibernate',
     ])
     expect([...device.capabilities].sort()).toEqual([
       'connected',
+      'hibernate',
       'poweroff',
       'poweron',
+      'sleep',
       'uptime',
     ])
     expect(getOnlyInterval(device).ms).toBe(10_000)
@@ -1254,6 +1294,84 @@ describe('ComputerDevice', () => {
       'Failed to shut down the computer over SSH',
       expect.any(Error),
     ])
+  })
+
+  it('runs sleep and hibernate commands over ssh based on target OS', async () => {
+    const sleepDevice = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+    await sleepDevice.sleepComputer()
+
+    const hibernateDevice = createDevice({
+      ipAddress: '192.168.1.21',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'windows',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+    await hibernateDevice.hibernateComputer()
+
+    const macHibernateDevice = createDevice({
+      ipAddress: '192.168.1.22',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'macos',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 0 }]
+    await macHibernateDevice.hibernateComputer()
+
+    expect(runtime.sshExecCalls).toEqual([
+      {
+        command: SLEEP_COMMANDS.linux,
+        options: { pty: true },
+      },
+      {
+        command: HIBERNATE_COMMANDS.windows,
+        options: { pty: false },
+      },
+      {
+        command: HIBERNATE_COMMANDS.macos,
+        options: { pty: true },
+      },
+    ])
+  })
+
+  it('wraps sleep and hibernate ssh failures with user-facing errors', async () => {
+    const sleepDevice = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 1, stderrChunks: ['denied'] }]
+    await expect(sleepDevice.sleepComputer()).rejects.toThrow(
+      'Failed to put the computer to sleep over SSH.'
+    )
+
+    const hibernateDevice = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshPort: 22,
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+
+    runtime.sshScenarios = [{ closeCode: 1, stderrChunks: ['denied'] }]
+    await expect(hibernateDevice.hibernateComputer()).rejects.toThrow(
+      'Failed to hibernate the computer over SSH.'
+    )
   })
 
   it('validates ssh shutdown settings before opening a connection', async () => {

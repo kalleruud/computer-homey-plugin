@@ -6,7 +6,8 @@ Dette gjør appen
 - Starter datamaskiner med Wake-on-LAN.
 - Overvåker om hver datamaskin er tilgjengelig fra Homey.
 - Slår av datamaskiner via SSH.
-- Legger til Flow-handlingskort for å starte eller slå av en valgt datamaskin.
+- Setter datamaskiner i dvale eller dvalemodus via SSH.
+- Legger til Flow-handlingskort for å starte, slå av, sette i dvale eller sette i dvalemodus for en valgt datamaskin, samt handlinger for alle datamaskiner.
 - Støtter flere datamaskiner, hver med egne innstillinger.
 
 Før du legger til en enhet
@@ -14,9 +15,14 @@ Før du legger til en enhet
 - Gi datamaskinen en fast lokal IP-adresse eller DHCP-reservasjon.
 - Aktiver SSH på datamaskinen.
 - Noter datamaskinens IP-adresse, MAC-adresse, SSH-port, brukernavn og passord.
-- For Linux og macOS må SSH-brukeren ha lov til å kjøre `sudo shutdown -h now`.
+- For Linux og macOS må SSH-brukeren ha lov til å kjøre `sudo shutdown -h now`, `sudo systemctl suspend` og `sudo systemctl hibernate` (Linux), samt `sudo pmset sleepnow` (macOS).
 
 Slik fungerer det
 - Når du slår på enheten, sendes en Wake-on-LAN-pakke.
-- Når du slår av enheten, kobler appen til via SSH og kjører den konfigurerte avslåingskommandoen.
+- Når du slår av enheten, setter den i dvale eller dvalemodus, kobler appen til via SSH på hver konfigurert IP til én lykkes og kjører standardkommandoen for valgt operativsystem.
 - Nettstatus sjekkes først med SSH. Hvis SSH er utilgjengelig, men ping svarer, viser Homey en tilkoblingsadvarsel.
+
+Merknader per operativsystem
+- Windows bruker innebygde SSH-kommandoer for avslåing, dvale og dvalemodus.
+- Linux bruker `systemctl suspend` og `systemctl hibernate` med sudo.
+- macOS bruker `pmset sleepnow` for dvale; dvalemodus er best effort og kan avhenge av maskinvare og strøminnstillinger.

@@ -21,12 +21,26 @@ export const SHUTDOWN_COMMANDS = {
   macos: `sudo -S -p "${SUDO_PROMPT}" shutdown -h now`,
 } as const
 
+export const SLEEP_COMMANDS = {
+  windows: 'rundll32.exe powrprof.dll,SetSuspendState 0,1,0',
+  linux: `sudo -S -p "${SUDO_PROMPT}" systemctl suspend`,
+  macos: `sudo -S -p "${SUDO_PROMPT}" pmset sleepnow`,
+} as const
+
+export const HIBERNATE_COMMANDS = {
+  windows: 'shutdown /h',
+  linux: `sudo -S -p "${SUDO_PROMPT}" systemctl hibernate`,
+  macos: `sudo -S -p "${SUDO_PROMPT}" sh -c 'pmset hibernatemode 25; pmset sleepnow'`,
+} as const
+
 export const IS_DEBUG = process.env.DEBUG === '1'
 
 export const REQUIRED_CAPABILITIES = [
   'connected',
   'poweron',
   'poweroff',
+  'sleep',
+  'hibernate',
   'uptime',
 ] as const
 
@@ -46,7 +60,11 @@ export const FLOW_CARD_IDS = {
   actions: {
     turnOn: 'computer_turn_on',
     turnOff: 'computer_turn_off',
+    sleep: 'computer_sleep',
+    hibernate: 'computer_hibernate',
     turnAllOn: 'turn_all_computers_on',
     turnAllOff: 'turn_all_computers_off',
+    sleepAll: 'sleep_all_computers',
+    hibernateAll: 'hibernate_all_computers',
   },
 } as const

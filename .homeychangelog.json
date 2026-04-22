@@ -1,7 +1,7 @@
 {
   "1.0.2": {
-    "en": "Added Norwegian translations across the app and Flow cards; comma-separated IP and MAC lists so Wake-on-LAN targets every configured MAC, shutdown tries SSH on each listed IP until one succeeds, and the device shows online when any address responds; SSH startup mode alongside Wake-on-LAN with optional custom power-on and shutdown commands validated against a safety blocklist; a fix for crashes when SSH shutdown ended without an exit code; and device settings grouped into Computer and SSH sections.",
-    "no": "La til norsk oversettelse i appen og Flow-kortene; kommaseparerte IP- og MAC-lister slik at Wake-on-LAN treffer alle konfigurerte MAC-adresser, avslåing prøver SSH på hver oppgitt IP til én lykkes og enheten vises som online når minst én adresse svarer; SSH-startmodus ved siden av Wake-on-LAN med valgfrie tilpassede på- og av-kommandoer som valideres mot en sikkerhetsblokkeringsliste; fiks for krasj når SSH-avslåing avsluttet uten avslutningskode; og enhetsinnstillinger samlet under Datamaskin og SSH."
+    "en": "Added Sleep and Hibernate support across Windows, Linux, and macOS with new device buttons and Flow actions for single or all computers over SSH.",
+    "no": "La til støtte for Dvale og Dvalemodus på Windows, Linux og macOS med nye enhetsknapper og Flow-handlinger for én eller alle datamaskiner via SSH."
   },
   "1.0.1": {
     "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring.",

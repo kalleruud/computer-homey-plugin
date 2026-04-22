@@ -79,6 +79,28 @@
         "en": "Turns this computer off over SSH.",
         "no": "Slår av denne datamaskinen via SSH."
       }
+    },
+    {
+      "id": "computer_sleep",
+      "title": {
+        "en": "Sleep",
+        "no": "Sett i dvale"
+      },
+      "hint": {
+        "en": "Puts this computer to sleep over SSH.",
+        "no": "Setter denne datamaskinen i dvale via SSH."
+      }
+    },
+    {
+      "id": "computer_hibernate",
+      "title": {
+        "en": "Hibernate",
+        "no": "Sett i dvalemodus"
+      },
+      "hint": {
+        "en": "Hibernates this computer over SSH.",
+        "no": "Setter denne datamaskinen i dvalemodus via SSH."
+      }
     }
   ]
 }

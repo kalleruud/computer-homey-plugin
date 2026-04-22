@@ -1,5 +1,6 @@
 import Homey from 'homey'
 import { startPolling, stopPolling } from '../../src/computer/connected.js'
+import { hibernateComputerOverSsh as hibernateComputer } from '../../src/computer/hibernate.js'
 import { shutdownComputerOverSsh as shutdownComputer } from '../../src/computer/poweroff.js'
 import { powerOnOverSsh } from '../../src/computer/poweron-ssh.js'
 import { sendWakeOnLan } from '../../src/computer/poweron.js'
@@ -8,6 +9,7 @@ import {
   assertCanWake,
   getComputerSettings,
 } from '../../src/computer/settings.js'
+import { sleepComputerOverSsh as sleepComputer } from '../../src/computer/sleep.js'
 import { ensureCapabilities } from '../../src/lib.js'
 import type { Capability, DeviceSettingsEvent } from '../../src/types.js'
 
@@ -27,6 +29,17 @@ export default class ComputerDevice extends Homey.Device {
       'poweroff' satisfies Capability,
       async () => {
         await this.shutdownComputer()
+      }
+    )
+
+    this.registerCapabilityListener('sleep' satisfies Capability, async () => {
+      await this.sleepComputer()
+    })
+
+    this.registerCapabilityListener(
+      'hibernate' satisfies Capability,
+      async () => {
+        await this.hibernateComputer()
       }
     )
 
@@ -98,6 +111,38 @@ export default class ComputerDevice extends Homey.Device {
     } catch (error) {
       this.error('Failed to shut down the computer over SSH', error)
       throw new Error(this.homey.__('errors.shutdownOverSshFailed'))
+    }
+  }
+
+  async sleepComputer() {
+    const settings = getComputerSettings(this.getSettings())
+    try {
+      assertCanShutdown(settings)
+    } catch (error) {
+      throw new Error(this.translateError(error))
+    }
+
+    try {
+      await sleepComputer(settings)
+    } catch (error) {
+      this.error('Failed to put the computer to sleep over SSH', error)
+      throw new Error(this.homey.__('errors.sleepOverSshFailed'))
+    }
+  }
+
+  async hibernateComputer() {
+    const settings = getComputerSettings(this.getSettings())
+    try {
+      assertCanShutdown(settings)
+    } catch (error) {
+      throw new Error(this.translateError(error))
+    }
+
+    try {
+      await hibernateComputer(settings)
+    } catch (error) {
+      this.error('Failed to hibernate the computer over SSH', error)
+      throw new Error(this.homey.__('errors.hibernateOverSshFailed'))
     }
   }
 

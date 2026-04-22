@@ -64,6 +64,18 @@ export default class ComputerDriver extends Homey.Driver {
       })
 
     this.homey.flow
+      .getActionCard(FLOW_CARD_IDS.actions.sleep)
+      .registerRunListener(async args => {
+        await (args.device as FlowComputerDevice).sleepComputer()
+      })
+
+    this.homey.flow
+      .getActionCard(FLOW_CARD_IDS.actions.hibernate)
+      .registerRunListener(async args => {
+        await (args.device as FlowComputerDevice).hibernateComputer()
+      })
+
+    this.homey.flow
       .getActionCard(FLOW_CARD_IDS.actions.turnAllOn)
       .registerRunListener(async () => {
         await Promise.all(
@@ -76,6 +88,22 @@ export default class ComputerDriver extends Homey.Driver {
       .registerRunListener(async () => {
         await Promise.all(
           this.getComputerDevices().map(device => device.shutdownComputer())
+        )
+      })
+
+    this.homey.flow
+      .getActionCard(FLOW_CARD_IDS.actions.sleepAll)
+      .registerRunListener(async () => {
+        await Promise.all(
+          this.getComputerDevices().map(device => device.sleepComputer())
+        )
+      })
+
+    this.homey.flow
+      .getActionCard(FLOW_CARD_IDS.actions.hibernateAll)
+      .registerRunListener(async () => {
+        await Promise.all(
+          this.getComputerDevices().map(device => device.hibernateComputer())
         )
       })
 

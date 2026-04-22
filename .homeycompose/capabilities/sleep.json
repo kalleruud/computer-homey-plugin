@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
+  "title": {
+    "en": "Sleep",
+    "no": "Sett i dvale"
+  },
+  "desc": {
+    "en": "Puts the computer to sleep",
+    "no": "Setter datamaskinen i dvale"
+  },
+  "type": "boolean",
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "uiQuickAction": false,
+  "$flow": {
+    "actions": [
+      {
+        "id": "press",
+        "title": {
+          "en": "Put the computer to sleep",
+          "no": "Sett datamaskinen i dvale"
+        }
+      }
+    ]
+  },
+  "icon": "/assets/icons/timer.svg"
+}
