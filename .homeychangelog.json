@@ -1,7 +1,7 @@
 {
   "1.0.2": {
-    "en": "Added Sleep and Hibernate support across Windows, Linux, and macOS with new device buttons and Flow actions for single or all computers over SSH.",
-    "no": "La til støtte for Dvale og Dvalemodus på Windows, Linux og macOS med nye enhetsknapper og Flow-handlinger for én eller alle datamaskiner via SSH."
+    "en": "Added Sleep and Hibernate buttons and Flow actions for single or all computers over SSH on Windows, Linux, and macOS, with verified button dispatch and credential and SSH error handling.",
+    "no": "La til Dvale- og Dvalemodus-knapper og Flow-handlinger for én eller alle datamaskiner via SSH på Windows, Linux og macOS, med verifisert knappefunksjon og håndtering av påloggings- og SSH-feil."
   },
   "1.0.1": {
     "en": "Added power and uptime capabilities, more computer Flow cards, and improved connectivity monitoring.",

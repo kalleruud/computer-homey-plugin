@@ -1346,6 +1346,65 @@ describe('ComputerDevice', () => {
     ])
   })
 
+  it('dispatches power buttons to the corresponding SSH commands', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPassword: 'secret',
+      sshPort: 22,
+      targetOs: 'linux',
+    })
+    await device.onInit()
+
+    for (const capability of ['poweroff', 'sleep', 'hibernate']) {
+      const listener = device.capabilityListeners.get(capability)
+      expect(listener).toBeDefined()
+      await listener?.()
+    }
+
+    expect(runtime.sshExecCalls.map(call => call.command)).toEqual([
+      SHUTDOWN_COMMANDS.linux,
+      SLEEP_COMMANDS.linux,
+      HIBERNATE_COMMANDS.linux,
+    ])
+  })
+
+  it('rejects sleep and hibernate without SSH credentials before connecting', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPort: 22,
+      sshUsername: '',
+    })
+
+    await expect(device.sleepComputer()).rejects.toThrow(
+      'SSH username is required for shutdown and SSH power-on.'
+    )
+    await expect(device.hibernateComputer()).rejects.toThrow(
+      'SSH username is required for shutdown and SSH power-on.'
+    )
+    expect(runtime.sshConnectConfigs).toHaveLength(0)
+  })
+
+  it('reports SSH execution and stream failures without hanging', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPassword: 'secret',
+      sshPort: 22,
+    })
+
+    for (const scenario of [
+      { execError: new Error('execution rejected') },
+      { streamError: new Error('stream interrupted') },
+    ]) {
+      runtime.sshScenarios = [scenario]
+      await expect(device.sleepComputer()).rejects.toThrow(
+        'Failed to put the computer to sleep over SSH.'
+      )
+    }
+    expect(runtime.sshEndCount).toBe(2)
+  })
+
   it('wraps sleep and hibernate ssh failures with user-facing errors', async () => {
     const sleepDevice = createDevice({
       ipAddress: '192.168.1.20',
