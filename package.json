@@ -1,6 +1,6 @@
 {
   "name": "no.kallerud.computer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "scripts": {
     "dev": "bunx homey app run",
     "app:build": "bunx homey app build",
