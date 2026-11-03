@@ -9,6 +9,7 @@ import { ComputerDriverSettings, StartupMode, TargetOs } from '../types.js'
 import { assertCustomSshCommandAllowed } from './command-safety.js'
 
 type RawComputerSettings = {
+  monitoringMethod?: unknown
   ipAddress?: unknown
   macAddress?: unknown
   pollIntervalSeconds?: unknown
@@ -45,6 +46,8 @@ export function getComputerSettings(
   settings: RawComputerSettings
 ): ComputerDriverSettings {
   return {
+    monitoringMethod:
+      settings.monitoringMethod === 'icmp' ? 'icmp' : 'ssh-ping',
     ipAddresses: parseCommaSeparatedSegments(settings.ipAddress),
     macAddresses: parseCommaSeparatedSegments(settings.macAddress),
     pollIntervalSeconds: clampPollInterval(settings.pollIntervalSeconds),
@@ -73,14 +76,15 @@ export function getPollIntervalMs(settings: ComputerDriverSettings): number {
 }
 
 export function getProbeValidationError(
-  settings: ComputerDriverSettings
+  settings: ComputerDriverSettings,
+  validateSsh = settings.monitoringMethod !== 'icmp'
 ): ErrorKey | null {
   const ipValidationError = getIpAddressesValidationError(settings.ipAddresses)
   if (ipValidationError) {
     return ipValidationError
   }
 
-  if (!isValidPort(settings.sshPort)) {
+  if (validateSsh && !isValidPort(settings.sshPort)) {
     return ERROR_KEYS.sshPortInvalid
   }
 
@@ -125,7 +129,7 @@ export function assertCanShutdown(settings: ComputerDriverSettings) {
 }
 
 function assertSshCredentials(settings: ComputerDriverSettings) {
-  const validationError = getProbeValidationError(settings)
+  const validationError = getProbeValidationError(settings, true)
   if (validationError) {
     throw new Error(validationError)
   }

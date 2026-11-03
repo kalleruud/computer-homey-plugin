@@ -1333,6 +1333,97 @@ describe('ComputerDevice', () => {
     ])
   })
 
+  it('monitors ICMP without SSH settings and transitions once per observed change', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: '192.168.1.20,192.168.1.21',
+      sshPort: 70000,
+    })
+    runtime.pingOutcomes = [new Error('timeout'), null]
+    await device.onInit()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
+    expect(runtime.tcpCalls).toHaveLength(0)
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    for (let i = 0; i < 2; i++) {
+      runtime.pingOutcomes = [new Error('timeout'), new Error('timeout')]
+      await runScheduledPoll(device)
+    }
+    expect(device.getCapabilityValue('connected')).toBe(false)
+    expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    await runScheduledPoll(device)
+    expect(device.driver.turnedOnTriggerCalls).toEqual([device])
+    await expect(device.shutdownComputer()).rejects.toThrow('SSH port')
+    device.settings.startupMode = 'ssh'
+    await expect(device.startComputer()).rejects.toThrow('SSH port')
+    device.settings.sshPort = 22
+    await expect(device.shutdownComputer()).rejects.toThrow('SSH username')
+    await expect(device.startComputer()).rejects.toThrow('SSH username')
+  })
+
+  for (const code of ['ENOENT', 'EACCES', 'EPERM', 'ENOTSUP']) {
+    it(`retains state and recovers from unavailable ICMP (${code})`, async () => {
+      const device = createDevice({
+        monitoringMethod: 'icmp',
+        ipAddress: '192.168.1.20',
+      })
+      const unavailable = Object.assign(new Error('ping unavailable'), { code })
+      runtime.pingOutcomes = [
+        unavailable,
+        unavailable,
+        null,
+        unavailable,
+        new Error('timeout'),
+      ]
+      await device.onInit()
+      expect(device.capabilitySetCalls).toHaveLength(0)
+      expect(device.warning).toBe('warnings.icmpUnavailable')
+      await runScheduledPoll(device)
+      expect(device.errorCalls).toHaveLength(1)
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(true)
+      expect(device.warning).toBeUndefined()
+      expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+      const uptime = device.getCapabilityValue('uptime')
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(true)
+      expect(device.getCapabilityValue('uptime')).toBe(uptime)
+      expect(device.driver.turnedOffTriggerCalls).toHaveLength(0)
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(false)
+      expect(device.warning).toBeUndefined()
+      expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    })
+  }
+
+  it('validates ICMP addresses independently and recognizes unsupported ping', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: 'invalid',
+      sshPort: 70000,
+    })
+    await device.onInit()
+    expect(device.warning).toBe('Computer IP must be a valid IPv4 address.')
+    expect(runtime.pingCalls).toHaveLength(0)
+    device.settings.ipAddress = '192.168.1.20'
+    runtime.pingOutcomes = [new Error('ping: protocol not supported')]
+    await runScheduledPoll(device)
+    expect(device.warning).toBe('warnings.icmpUnavailable')
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    expect(runtime.tcpCalls).toHaveLength(0)
+  })
+
+  it('keeps successful SSH observations when ping is unavailable', async () => {
+    const device = createDevice({ ipAddress: '192.168.1.20' })
+    runtime.pingOutcomes = [
+      Object.assign(new Error('missing'), { code: 'ENOENT' }),
+    ]
+    await device.onInit()
+    expect(runtime.tcpCalls).toHaveLength(1)
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
+  })
+
   it('logs lifecycle events and stops polling when the device is removed', async () => {
     const device = createDevice({
       ipAddress: '192.168.1.20',

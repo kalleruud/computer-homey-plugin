@@ -20,3 +20,5 @@ Slik fungerer det
 - Når du slår på enheten, sendes en Wake-on-LAN-pakke.
 - Når du slår av enheten, kobler appen til via SSH og kjører den konfigurerte avslåingskommandoen.
 - Nettstatus sjekkes først med SSH. Hvis SSH er utilgjengelig, men ping svarer, viser Homey en tilkoblingsadvarsel.
+
+Kun ICMP kan velges i enhetsinnstillingene og krever ikke SSH-innlogging eller sjekker SSH. Standardvalget SSH + ping sjekker begge samtidig. ICMP krever et fungerende ping-miljø og svar fra målet; blokkert ICMP eller tidsavbrudd kan vise en påslått datamaskin som frakoblet. Hvis ping ikke kan kjøres, vises en overvåkingsadvarsel og sist kjente status beholdes til overvåkingen fungerer igjen automatisk. SSH-strømstyring krever fortsatt gyldige SSH-innstillinger.

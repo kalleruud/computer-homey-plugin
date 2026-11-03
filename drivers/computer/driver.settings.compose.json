@@ -35,6 +35,35 @@
         "highlight": true
       },
       {
+        "id": "monitoringMethod",
+        "type": "dropdown",
+        "label": {
+          "en": "Monitoring method",
+          "no": "Overvåkingsmetode"
+        },
+        "hint": {
+          "en": "SSH + ping checks SSH availability and reachability; ICMP only uses ping without checking SSH or requiring credentials. ICMP requires a working ping environment and replies from the target; blocked ICMP can make a running computer appear offline.",
+          "no": "SSH + ping sjekker SSH og tilgjengelighet; kun ICMP bruker ping uten å sjekke SSH eller kreve innlogging. ICMP krever et fungerende ping-miljø og svar fra målet; blokkert ICMP kan vise en påslått datamaskin som frakoblet."
+        },
+        "value": "ssh-ping",
+        "values": [
+          {
+            "id": "ssh-ping",
+            "label": {
+              "en": "SSH + ping (default)",
+              "no": "SSH + ping (standard)"
+            }
+          },
+          {
+            "id": "icmp",
+            "label": {
+              "en": "ICMP only",
+              "no": "Kun ICMP"
+            }
+          }
+        ]
+      },
+      {
         "id": "pollIntervalSeconds",
         "type": "number",
         "label": {

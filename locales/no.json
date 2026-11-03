@@ -13,6 +13,7 @@
     "customCommandNotAllowed": "Denne kommandoen inneholder et ord som ikke er tillatt av sikkerhetshensyn."
   },
   "warnings": {
-    "sshUnavailable": "Datamaskinen er tilgjengelig, men SSH er utilgjengelig."
+    "sshUnavailable": "Datamaskinen er tilgjengelig, men SSH er utilgjengelig.",
+    "icmpUnavailable": "ICMP-overvåking er utilgjengelig. Sjekk ping-miljøet og tillatelsene; sist kjente status beholdes."
   }
 }

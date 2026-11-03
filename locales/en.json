@@ -13,6 +13,7 @@
     "customCommandNotAllowed": "This command contains a word that is not allowed for safety reasons."
   },
   "warnings": {
-    "sshUnavailable": "Computer is reachable, but SSH is unavailable."
+    "sshUnavailable": "Computer is reachable, but SSH is unavailable.",
+    "icmpUnavailable": "ICMP monitoring is unavailable. Check the ping environment and permissions; the last known state is retained."
   }
 }
