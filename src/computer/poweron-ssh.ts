@@ -12,7 +12,7 @@ export async function powerOnOverSsh(settings: ComputerDriverSettings) {
   try {
     await Promise.any(
       settings.ipAddresses.map(host =>
-        runSshCommandOnHost(settings, host, command, false, authentication)
+        runSshCommandOnHost(settings, host, command, {}, authentication)
       )
     )
   } catch (error) {

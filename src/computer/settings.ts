@@ -9,6 +9,7 @@ import { ComputerDriverSettings, StartupMode, TargetOs } from '../types.js'
 import { assertCustomSshCommandAllowed } from './command-safety.js'
 
 type RawComputerSettings = {
+  batteryMonitoring?: unknown
   ipAddress?: unknown
   macAddress?: unknown
   pollIntervalSeconds?: unknown
@@ -47,6 +48,7 @@ export function getComputerSettings(
   settings: RawComputerSettings
 ): ComputerDriverSettings {
   return {
+    batteryMonitoring: settings.batteryMonitoring === true,
     ipAddresses: parseCommaSeparatedSegments(settings.ipAddress),
     macAddresses: parseCommaSeparatedSegments(settings.macAddress),
     pollIntervalSeconds: clampPollInterval(settings.pollIntervalSeconds),

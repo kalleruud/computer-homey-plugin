@@ -16,7 +16,7 @@ export async function shutdownComputerOverSsh(
   try {
     await Promise.any(
       settings.ipAddresses.map(host =>
-        runSshCommandOnHost(settings, host, command, usePty, authentication)
+        runSshCommandOnHost(settings, host, command, { usePty }, authentication)
       )
     )
   } catch (error) {

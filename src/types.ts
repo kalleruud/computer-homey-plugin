@@ -10,6 +10,7 @@ export type DeviceSettingsEvent = Parameters<
 >[0]
 
 export type ComputerDriverSettings = {
+  batteryMonitoring?: boolean
   ipAddresses: string[]
   macAddresses: string[]
   pollIntervalSeconds: number

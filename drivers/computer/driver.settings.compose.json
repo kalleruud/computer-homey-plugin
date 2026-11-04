@@ -79,6 +79,19 @@
             }
           }
         ]
+      },
+      {
+        "id": "batteryMonitoring",
+        "type": "checkbox",
+        "label": {
+          "en": "Monitor laptop battery",
+          "no": "Overvåk laptopbatteri"
+        },
+        "hint": {
+          "en": "Requires SSH access; disabling removes battery Flow cards.",
+          "no": "Krever SSH-tilgang; deaktivering fjerner batterikort i Flow."
+        },
+        "value": false
       }
     ]
   },

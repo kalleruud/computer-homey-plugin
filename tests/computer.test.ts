@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 import { generateKeyPairSync } from 'node:crypto'
 import { EventEmitter } from 'node:events'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { PublicKeyAuthMethod } from 'ssh2'
 import { utils as sshUtils } from 'ssh2'
 
@@ -13,6 +16,8 @@ type PingError = Error & {
 }
 
 type SshScenario = {
+  keepOpen?: boolean
+  execute?: (command: string) => string
   hang?: boolean
   closeCode?: number | null | undefined
   connectError?: Error
@@ -66,7 +71,7 @@ type FakeActionOrConditionCard = {
   runListener?: FakeFlowRunListener
 }
 
-type FakeTriggerCard = {
+type FakeTriggerCard = FakeActionOrConditionCard & {
   calls: Array<{ device: unknown; tokens?: object }>
   trigger: (device: unknown, tokens?: object) => Promise<void>
 }
@@ -274,7 +279,9 @@ class FakeSshClient extends EventEmitter {
         return
       }
 
-      for (const chunk of this.scenario?.stdoutChunks ?? []) {
+      for (const chunk of this.scenario?.execute
+        ? [this.scenario.execute(command)]
+        : (this.scenario?.stdoutChunks ?? [])) {
         stream.emit('data', Buffer.from(chunk))
       }
 
@@ -282,6 +289,7 @@ class FakeSshClient extends EventEmitter {
         stream.stderr.emit('data', Buffer.from(chunk))
       }
 
+      if (this.scenario?.keepOpen) return
       const scenario = this.scenario
       const closeCode =
         scenario === undefined
@@ -411,6 +419,10 @@ class FakeDriver {
 
   private createTriggerCard() {
     const card: FakeTriggerCard = {
+      registerRunListener: listener => {
+        card.runListener = listener
+        return card
+      },
       calls: [],
       trigger: async (device, tokens) => {
         card.calls.push({ device, tokens })
@@ -490,9 +502,9 @@ class FakeDevice {
   capabilityListeners = new Map<string, () => Promise<void> | void>()
   capabilitySetCalls: Array<{
     capability: string
-    value: number | boolean
+    value: number | boolean | null
   }> = []
-  capabilityValues = new Map<string, number | boolean>()
+  capabilityValues = new Map<string, number | boolean | null>()
   errorCalls: unknown[][] = []
   homey = createHomeyRuntime()
   logs: unknown[][] = []
@@ -544,7 +556,7 @@ class FakeDevice {
     )
   }
 
-  async setCapabilityValue(capability: string, value: number | boolean) {
+  async setCapabilityValue(capability: string, value: number | boolean | null) {
     this.capabilitySetCalls.push({ capability, value })
     this.capabilityValues.set(capability, value)
   }
@@ -1559,4 +1571,346 @@ describe('ComputerDevice', () => {
     ])
     expect(device.homey.intervals.size).toBe(0)
   })
+})
+
+describe('Laptop battery monitoring', () => {
+  async function laptop(targetOs = 'linux') {
+    const device = createDevice({
+      batteryMonitoring: true,
+      targetOs,
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPassword: 'secret',
+    })
+    const driver = new ComputerDriver() as unknown as FakeDriver & {
+      onInit(): Promise<void>
+    }
+    await driver.onInit()
+    Object.assign(device.homey, { flow: driver.homey.flow })
+    return { device, driver }
+  }
+
+  it('polls battery telemetry with private-key authentication and no password', async () => {
+    const { device } = await laptop()
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    device.settings = {
+      ...device.settings,
+      sshPassword: '',
+      sshPrivateKey: privateKey,
+    }
+    runtime.tcpOutcomes = ['connect']
+    runtime.sshScenarios = [{ closeCode: 0, stdoutChunks: ['45|||'] }]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(45)
+    expect(runtime.sshConnectConfigs[0]?.authHandler?.[0]?.type).toBe(
+      'publickey'
+    )
+    expect(runtime.sshConnectConfigs[0]?.password).toBeUndefined()
+    expect(runtime.sshWrites).toEqual([])
+    expect(runtime.sshExecCalls[0]?.options.pty).toBe(false)
+  })
+
+  it('adds optional capability, aggregates capacities and clears failed/offline readings', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'timeout']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['20|20|100|energy\n80|240|300|energy'] },
+      { closeCode: 1 },
+    ]
+    await device.onInit()
+    expect(device.hasCapability('measure_battery')).toBe(true)
+    expect(device.getCapabilityValue('measure_battery')).toBe(65)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.hasCapability('measure_battery')).toBe(true)
+    device.settings = { ...device.settings, batteryMonitoring: false }
+    await device.onSettings({
+      changedKeys: ['batteryMonitoring'],
+      newSettings: device.settings,
+    })
+    expect(device.hasCapability('measure_battery')).toBe(false)
+  })
+
+  it('uses the lowest percentage for charge-only batteries with different voltages', async () => {
+    const { device } = await laptop()
+    const root = mkdtempSync(join(tmpdir(), 'battery-'))
+    try {
+      for (const [name, percent, remaining, full, voltage] of [
+        ['BAT0', 20, 200, 1000, 12000000],
+        ['BAT1', 80, 800, 1000, 6000000],
+      ] as const) {
+        const dir = join(root, name)
+        mkdirSync(dir)
+        for (const [key, value] of Object.entries({
+          type: 'Battery',
+          scope: 'System',
+          capacity: percent,
+          charge_now: remaining,
+          charge_full: full,
+          voltage_now: voltage,
+        }))
+          writeFileSync(join(dir, key), String(value))
+      }
+      runtime.tcpOutcomes = ['connect']
+      runtime.sshScenarios = [
+        {
+          closeCode: 0,
+          execute: command => {
+            const result = Bun.spawnSync([
+              'sh',
+              '-c',
+              command.replace('/sys/class/power_supply', root),
+            ])
+            expect(result.exitCode).toBe(0)
+            return result.stdout.toString()
+          },
+        },
+      ]
+      await device.onInit()
+      expect(device.getCapabilityValue('measure_battery')).toBe(20)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('executes the macOS query against native ioreg output', async () => {
+    const { device } = await laptop('macos')
+    runtime.tcpOutcomes = ['connect']
+    runtime.sshScenarios = [
+      {
+        closeCode: 0,
+        execute: command => {
+          expect(command).toContain('ioreg -r -c AppleSmartBattery')
+          const fixture =
+            '  "CurrentCapacity" = 75\n  "MaxCapacity" = 100\n  "AppleRawCurrentCapacity" = 3000\n  "AppleRawMaxCapacity" = 4000\n'
+          const result = Bun.spawnSync(
+            [
+              'sh',
+              '-c',
+              command.replace('ioreg -r -c AppleSmartBattery', 'cat'),
+            ],
+            { stdin: Buffer.from(fixture) }
+          )
+          expect(result.exitCode).toBe(0)
+          expect(result.stdout.toString()).toBe('75|3000|4000|raw\n')
+          return result.stdout.toString()
+        },
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(75)
+  })
+
+  it('uses the Windows active-system-battery query and its capacity output contract', async () => {
+    const { device } = await laptop('windows')
+    runtime.tcpOutcomes = ['connect']
+    runtime.sshScenarios = [
+      {
+        closeCode: 0,
+        execute: command => {
+          expect(command).toStartWith(
+            'powershell.exe -NoProfile -NonInteractive'
+          )
+          expect(command).toContain(
+            'Get-CimInstance -Namespace root/wmi -ClassName BatteryStatus'
+          )
+          expect(command).toContain('Where-Object Active')
+          expect(command).toContain('BatteryFullChargedCapacity')
+          expect(command).toContain(
+            'Where-Object InstanceName -eq $b.InstanceName'
+          )
+          expect(command).toContain("'{0}|{1}|{2}|mWh' -f")
+          if (process.platform !== 'win32')
+            return '50|10000|20000|mWh\r\n75|60000|80000|mWh\r\n'
+          // Execute the real query in Windows PowerShell, substituting only CIM data.
+          const fixture = `function Get-CimInstance {
+            param($Namespace, $ClassName, $ErrorAction)
+            if ($Namespace -ne 'root/wmi') { throw 'Unexpected namespace' }
+            switch ($ClassName) {
+              BatteryStatus {
+                [pscustomobject]@{ InstanceName='BAT0'; Active=$true; RemainingCapacity=10000 }
+                [pscustomobject]@{ InstanceName='BAT1'; Active=$true; RemainingCapacity=60000 }
+                [pscustomobject]@{ InstanceName='inactive'; Active=$false; RemainingCapacity=0 }
+              }
+              BatteryFullChargedCapacity {
+                [pscustomobject]@{ InstanceName='BAT1'; FullChargedCapacity=80000 }
+                [pscustomobject]@{ InstanceName='BAT0'; FullChargedCapacity=20000 }
+                [pscustomobject]@{ InstanceName='inactive'; FullChargedCapacity=100000 }
+              }
+              default { throw 'Unexpected battery class' }
+            }
+          }; `
+          const script = command.slice(command.indexOf('-Command "') + 10, -1)
+          const result = Bun.spawnSync([
+            'powershell.exe',
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            fixture + script,
+          ])
+          expect(result.exitCode).toBe(0)
+          expect(result.stdout.toString().trim().split(/\r?\n/)).toEqual([
+            '50|10000|20000|mWh',
+            '75|60000|80000|mWh',
+          ])
+          return result.stdout.toString()
+        },
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(70)
+  })
+
+  it('clears battery telemetry when SSH output exceeds its byte limit', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+      {
+        closeCode: 0,
+        stdoutChunks: ['25|||'],
+        stderrChunks: ['x'.repeat(262144)],
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(25)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(runtime.sshEndCount).toBe(2)
+  })
+
+  it('clears battery telemetry when the SSH query times out and recovers', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'connect']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+      { keepOpen: true },
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+    ]
+    await device.onInit()
+    const pending = device.onSettings({
+      changedKeys: ['pollIntervalSeconds'],
+      newSettings: device.settings,
+    })
+    await Bun.sleep(0)
+    const timeout = [...sshTimers.values()][0]
+    expect(timeout?.ms).toBe(10000)
+    timeout?.callback()
+    await pending
+    expect(sshTimers.size).toBe(0)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(runtime.sshEndCount).toBe(2)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBe(25)
+  })
+
+  it('preserves threshold history across unrelated settings saves', async () => {
+    const { device, driver } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'connect']
+    runtime.sshScenarios = Array.from({ length: 3 }, () => ({
+      closeCode: 0,
+      stdoutChunks: ['20|||'],
+    }))
+    await device.onInit()
+    const card = driver.homey.flow.getDeviceTriggerCard(
+      'computer_battery_below'
+    )
+    const trigger = card.runListener
+    // Capture the actual previous/current state passed to the Homey card.
+    const states: unknown[] = []
+    Object.assign(card, {
+      trigger: async (_device: unknown, _tokens: unknown, state: unknown) => {
+        states.push(state)
+      },
+    })
+    device.settings = { ...device.settings, macAddress: '11:22:33:44:55:66' }
+    await device.onSettings({
+      changedKeys: ['macAddress'],
+      newSettings: device.settings,
+    })
+    expect(states[0]).toEqual({ value: 20, previous: 20 })
+    expect(await trigger?.({ threshold: 30 }, states[0])).toBe(false)
+    await device.onSettings({
+      changedKeys: ['sshPassword'],
+      newSettings: device.settings,
+    })
+    expect(states[1]).toEqual({ value: 20, previous: null })
+    expect(await trigger?.({ threshold: 30 }, states[1])).toBe(true)
+  })
+
+  it('implements strict independent threshold entries and rejects unknown conditions', async () => {
+    const { device, driver } = await laptop()
+    for (const direction of ['below', 'above']) {
+      const trigger = driver.triggerCards.get(
+        `computer_battery_${direction}`
+      )?.runListener
+      const threshold = direction === 'below' ? 30 : 80
+      const inside = direction === 'below' ? 29 : 81
+      expect(
+        await trigger?.({ threshold }, { value: threshold, previous: null })
+      ).toBe(false)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: threshold })
+      ).toBe(true)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: inside })
+      ).toBe(false)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: null })
+      ).toBe(true)
+      expect(
+        await trigger?.(
+          { threshold: direction === 'below' ? 20 : 90 },
+          { value: inside, previous: null }
+        )
+      ).toBe(false)
+      const condition = driver.conditionCards.get(
+        `computer_battery_${direction}`
+      )?.runListener
+      await expect(condition?.({ device, threshold })).rejects.toThrow(
+        'unknown'
+      )
+    }
+  })
+})
+
+it('clears invalid battery output and restores fresh conditions after recovery', async () => {
+  const device = createDevice({
+    batteryMonitoring: true,
+    ipAddress: '192.168.1.20',
+    sshUsername: 'admin',
+    sshPassword: 'secret',
+  })
+  const driver = new ComputerDriver() as unknown as FakeDriver & {
+    onInit(): Promise<void>
+  }
+  await driver.onInit()
+  Object.assign(device.homey, { flow: driver.homey.flow })
+  runtime.tcpOutcomes = ['connect', 'connect', 'connect', 'connect']
+  runtime.sshScenarios = [
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+    { closeCode: 0, stdoutChunks: ['Infinity|||\n-1|||\n101|||\n|||'] },
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+  ]
+  await device.onInit()
+  const condition = driver.conditionCards.get(
+    'computer_battery_below'
+  )?.runListener
+  expect(await condition?.({ device, threshold: 30 })).toBe(true)
+  expect(await condition?.({ device, threshold: 25 })).toBe(false)
+  await runScheduledPoll(device)
+  expect(device.getCapabilityValue('measure_battery')).toBeNull()
+  await expect(condition?.({ device, threshold: 30 })).rejects.toThrow(
+    'unknown'
+  )
+  await runScheduledPoll(device)
+  expect(await condition?.({ device, threshold: 30 })).toBe(true)
+  await runScheduledPoll(device)
+  expect(device.getCapabilityValue('measure_battery')).toBe(25)
 })
