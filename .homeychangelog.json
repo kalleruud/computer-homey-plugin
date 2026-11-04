@@ -1,6 +1,6 @@
 {
   "1.0.3": {
-    "en": "Fixed mobile app and capability icon rendering and updated the app icon to use its primary color and added optional SSH laptop battery monitoring with threshold Flow cards, conservative charge-only aggregation and preserved thresholds across unrelated settings edits.",
+    "en": "Fixed mobile app and capability icon rendering and updated the app icon to use its primary color and added optional SSH laptop battery monitoring with threshold Flow cards, conservative charge-only aggregation and preserved thresholds across unrelated settings edits with Windows query and SSH failure regression coverage.",
     "no": "Rettet visning av app- og kapabilitetsikoner i mobilappen og oppdaterte appikonet til å bruke appens primærfarge og la til valgfri batteriovervåking via SSH med terskelkort i Flow, konservativ aggregering av ladningsdata og bevarte terskler ved urelaterte innstillingsendringer."
   },
   "1.0.2": {

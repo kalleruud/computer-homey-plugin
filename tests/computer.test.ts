@@ -13,6 +13,7 @@ type PingError = Error & {
 }
 
 type SshScenario = {
+  keepOpen?: boolean
   execute?: (command: string) => string
   closeCode?: number | null | undefined
   connectError?: Error
@@ -275,6 +276,7 @@ class FakeSshClient extends EventEmitter {
         stream.stderr.emit('data', Buffer.from(chunk))
       }
 
+      if (this.scenario?.keepOpen) return
       const scenario = this.scenario
       const closeCode =
         scenario === undefined
@@ -1500,14 +1502,87 @@ describe('Laptop battery monitoring', () => {
             'Where-Object InstanceName -eq $b.InstanceName'
           )
           expect(command).toContain("'{0}|{1}|{2}|mWh' -f")
-          // PowerShell -f output for two WMI battery pairs: 10/20 Wh and 60/80 Wh.
-          return '50|10000|20000|mWh\r\n75|60000|80000|mWh\r\n'
+          if (process.platform !== 'win32')
+            return '50|10000|20000|mWh\r\n75|60000|80000|mWh\r\n'
+          // Execute the real query in Windows PowerShell, substituting only CIM data.
+          const fixture = `function Get-CimInstance {
+            param($Namespace, $ClassName, $ErrorAction)
+            if ($Namespace -ne 'root/wmi') { throw 'Unexpected namespace' }
+            switch ($ClassName) {
+              BatteryStatus {
+                [pscustomobject]@{ InstanceName='BAT0'; Active=$true; RemainingCapacity=10000 }
+                [pscustomobject]@{ InstanceName='BAT1'; Active=$true; RemainingCapacity=60000 }
+                [pscustomobject]@{ InstanceName='inactive'; Active=$false; RemainingCapacity=0 }
+              }
+              BatteryFullChargedCapacity {
+                [pscustomobject]@{ InstanceName='BAT1'; FullChargedCapacity=80000 }
+                [pscustomobject]@{ InstanceName='BAT0'; FullChargedCapacity=20000 }
+                [pscustomobject]@{ InstanceName='inactive'; FullChargedCapacity=100000 }
+              }
+              default { throw 'Unexpected battery class' }
+            }
+          }; `
+          const script = command.slice(command.indexOf('-Command "') + 10, -1)
+          const result = Bun.spawnSync([
+            'powershell.exe',
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            fixture + script,
+          ])
+          expect(result.exitCode).toBe(0)
+          expect(result.stdout.toString().trim().split(/\r?\n/)).toEqual([
+            '50|10000|20000|mWh',
+            '75|60000|80000|mWh',
+          ])
+          return result.stdout.toString()
         },
       },
     ]
     await device.onInit()
     expect(device.getCapabilityValue('measure_battery')).toBe(70)
   })
+
+  it('clears battery telemetry when SSH output exceeds its byte limit', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+      {
+        closeCode: 0,
+        stdoutChunks: ['25|||'],
+        stderrChunks: ['x'.repeat(262144)],
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(25)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(runtime.sshEndCount).toBe(2)
+  })
+
+  it('clears battery telemetry when the SSH query times out and recovers', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'connect']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+      { keepOpen: true },
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+    ]
+    await device.onInit()
+    const started = Date.now()
+    await device.onSettings({
+      changedKeys: ['pollIntervalSeconds'],
+      newSettings: device.settings,
+    })
+    expect(Date.now() - started).toBeGreaterThanOrEqual(9900)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(runtime.sshEndCount).toBe(2)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBe(25)
+  }, 20000)
 
   it('preserves threshold history across unrelated settings saves', async () => {
     const { device, driver } = await laptop()
