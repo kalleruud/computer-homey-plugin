@@ -57,3 +57,20 @@ Wake, monitor, and power down your computer from Homey.
 - [App icon](https://unsplash.com/illustrations/a-simple-black-and-white-computer-icon-uKxKGmoiW9g) by [Boxicons](https://unsplash.com/@boxicons/illustrations)
 - [Store photo](https://unsplash.com/photos/white-and-black-hp-laptop-hRI8f-2WyDw) by [John M. Smith](https://unsplash.com/@john_smith)
 - [Driver photo](https://unsplash.com/photos/a-computer-monitor-sitting-on-top-of-a-desk-3ttxeT6-Flo) by [ichwar -](https://unsplash.com/@ilmuktigraphic)
+
+## Sleep and hibernation (draft)
+
+Sleep uses SSH on Linux and macOS; hibernation supports Linux and Windows.
+Windows sleep and macOS hibernation return unsupported errors without opening SSH.
+Actions require an explicit zero exit status within 30 seconds. Disconnects or
+timeouts report unconfirmed completion even if the machine did enter sleep;
+check reachability before retrying. Command acceptance does not verify hardware
+sleep or wake support. Existing monitoring determines online/offline state.
+Wake-on-LAN requires firmware, OS and network-adapter support in the selected
+power state; SSH startup needs a separate reachable controller. Hardware
+sleep/hibernate-to-wake validation remains required before this PR leaves draft.
+
+Command references: [systemctl](https://www.freedesktop.org/software/systemd/man/latest/systemctl.html),
+[Windows hibernation](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/shutdown),
+[rundll32 restrictions](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/rundll32),
+and [SetSuspendState](https://learn.microsoft.com/en-us/windows/win32/api/powrprof/nf-powrprof-setsuspendstate).

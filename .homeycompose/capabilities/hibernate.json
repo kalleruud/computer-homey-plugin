@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athombv/node-homey-lib/refs/heads/develop/assets/capability/schema.json",
+  "title": {
+    "en": "Hibernate",
+    "no": "Sett i dvalemodus"
+  },
+  "desc": {
+    "en": "Hibernates the computer",
+    "no": "Setter datamaskinen i dvalemodus"
+  },
+  "type": "boolean",
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "uiQuickAction": false,
+  "$flow": {
+    "actions": [
+      {
+        "id": "press",
+        "title": {
+          "en": "Hibernate the computer",
+          "no": "Sett datamaskinen i dvalemodus"
+        }
+      }
+    ]
+  },
+  "icon": "/assets/icons/timer.svg"
+}

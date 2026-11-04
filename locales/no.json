@@ -10,7 +10,11 @@
     "wakeOnLanSendFailed": "Kunne ikke sende Wake-on-LAN-pakken.",
     "powerOnOverSshFailed": "Kunne ikke slå på datamaskinen via SSH.",
     "shutdownOverSshFailed": "Kunne ikke slå av datamaskinen via SSH.",
-    "customCommandNotAllowed": "Denne kommandoen inneholder et ord som ikke er tillatt av sikkerhetshensyn."
+    "sleepOverSshFailed": "Kunne ikke sette datamaskinen i dvale via SSH.",
+    "hibernateOverSshFailed": "Kunne ikke sette datamaskinen i dvalemodus via SSH.",
+    "customCommandNotAllowed": "Denne kommandoen inneholder et ord som ikke er tillatt av sikkerhetshensyn.",
+    "sleepUnsupported": "Dvale støttes ikke på Windows; bruk Dvalemodus i stedet.",
+    "hibernateUnsupported": "Dvalemodus støttes ikke på macOS; bruk Dvale i stedet."
   },
   "warnings": {
     "sshUnavailable": "Datamaskinen er tilgjengelig, men SSH er utilgjengelig."

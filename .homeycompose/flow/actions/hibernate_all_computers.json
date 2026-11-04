@@ -1,0 +1,10 @@
+{
+  "title": {
+    "en": "Hibernate all computers",
+    "no": "Sett alle datamaskiner i dvalemodus"
+  },
+  "hint": {
+    "en": "Hibernates all computers over SSH.",
+    "no": "Setter alle datamaskiner i dvalemodus via SSH."
+  }
+}

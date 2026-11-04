@@ -1,13 +1,16 @@
+import timers from 'node:timers'
 import { Client } from 'ssh2'
 
 import { SSH_READY_TIMEOUT_MS, SUDO_PROMPT } from '../constants.js'
 import { ComputerDriverSettings } from '../types.js'
 
-export async function runSshCommandOnHost(
+async function runSshCommandOnHost(
   settings: ComputerDriverSettings,
   host: string,
   command: string,
-  usePty: boolean
+  usePty: boolean,
+  requireExitCode: boolean,
+  timeoutMs?: number
 ): Promise<void> {
   const needsSudoPassword = usePty && settings.targetOs !== 'windows'
 
@@ -18,12 +21,14 @@ export async function runSshCommandOnHost(
     let stdout = ''
     let stderr = ''
 
+    let timer: ReturnType<typeof timers.setTimeout> | undefined
     const finish = (error?: Error) => {
       if (settled) {
         return
       }
 
       settled = true
+      timers.clearTimeout(timer)
       client.end()
 
       if (error) {
@@ -46,11 +51,32 @@ export async function runSshCommandOnHost(
       stream.write(`${settings.sshPassword}\n`)
     }
 
+    if (timeoutMs) {
+      timer = timers.setTimeout(
+        () =>
+          finish(
+            new Error(
+              `SSH command completion was not confirmed within ${timeoutMs} ms`
+            )
+          ),
+        timeoutMs
+      )
+    }
+
+    client.once('close', () => {
+      finish(
+        new Error(
+          'SSH connection closed before command completion was confirmed'
+        )
+      )
+    })
+
     client.once('error', error => {
       finish(error instanceof Error ? error : new Error(String(error)))
     })
 
     client.once('ready', () => {
+      if (settled) return
       client.exec(command, { pty: usePty }, (error, stream) => {
         if (error) {
           finish(error)
@@ -69,7 +95,7 @@ export async function runSshCommandOnHost(
           maybeSendPassword(chunk, stream)
         })
         stream.once('close', (code: number | null | undefined) => {
-          if (!code) {
+          if (requireExitCode ? code === 0 : !code) {
             finish()
             return
           }
@@ -94,4 +120,38 @@ export async function runSshCommandOnHost(
       keepaliveCountMax: 2,
     })
   })
+}
+
+export async function runSshCommand(
+  settings: ComputerDriverSettings,
+  command: string,
+  options: {
+    usePty?: boolean
+    requireExitCode?: boolean
+    timeoutMs?: number
+  } = {}
+): Promise<void> {
+  const usePty = options.usePty ?? settings.targetOs !== 'windows'
+  try {
+    await Promise.any(
+      settings.ipAddresses.map(host =>
+        runSshCommandOnHost(
+          settings,
+          host,
+          command,
+          usePty,
+          options.requireExitCode === true,
+          options.timeoutMs
+        )
+      )
+    )
+  } catch (error) {
+    if (error instanceof AggregateError) {
+      const [firstError] = error.errors
+      if (firstError instanceof Error) {
+        throw firstError
+      }
+    }
+    throw error
+  }
 }

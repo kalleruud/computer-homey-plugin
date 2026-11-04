@@ -27,4 +27,6 @@ export type Capability = (typeof REQUIRED_CAPABILITIES)[number]
 export type FlowComputerDevice = Homey.Device & {
   startComputer(): Promise<void>
   shutdownComputer(): Promise<void>
+  sleepComputer(): Promise<void>
+  hibernateComputer(): Promise<void>
 }

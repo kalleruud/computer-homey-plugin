@@ -178,6 +178,28 @@
     "actions": [
       {
         "title": {
+          "en": "Hibernate all computers",
+          "no": "Sett alle datamaskiner i dvalemodus"
+        },
+        "hint": {
+          "en": "Hibernates all computers over SSH.",
+          "no": "Setter alle datamaskiner i dvalemodus via SSH."
+        },
+        "id": "hibernate_all_computers"
+      },
+      {
+        "title": {
+          "en": "Sleep all computers",
+          "no": "Sett alle datamaskiner i dvale"
+        },
+        "hint": {
+          "en": "Puts all computers to sleep over SSH.",
+          "no": "Setter alle datamaskiner i dvale via SSH."
+        },
+        "id": "sleep_all_computers"
+      },
+      {
+        "title": {
           "en": "Turn all computers off",
           "no": "Slå av alle datamaskiner"
         },
@@ -233,6 +255,42 @@
             "filter": "driver_id=computer"
           }
         ]
+      },
+      {
+        "id": "computer_sleep",
+        "title": {
+          "en": "Sleep",
+          "no": "Sett i dvale"
+        },
+        "hint": {
+          "en": "Puts this computer to sleep over SSH.",
+          "no": "Setter denne datamaskinen i dvale via SSH."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=computer"
+          }
+        ]
+      },
+      {
+        "id": "computer_hibernate",
+        "title": {
+          "en": "Hibernate",
+          "no": "Sett i dvalemodus"
+        },
+        "hint": {
+          "en": "Hibernates this computer over SSH.",
+          "no": "Setter denne datamaskinen i dvalemodus via SSH."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=computer"
+          }
+        ]
       }
     ]
   },
@@ -253,6 +311,8 @@
         "connected",
         "poweron",
         "poweroff",
+        "sleep",
+        "hibernate",
         "uptime"
       ],
       "icon": "/drivers/computer/assets/icon.svg",
@@ -495,6 +555,22 @@
         "no": "Slått av"
       }
     },
+    "hibernate": {
+      "title": {
+        "en": "Hibernate",
+        "no": "Sett i dvalemodus"
+      },
+      "desc": {
+        "en": "Hibernates the computer",
+        "no": "Setter datamaskinen i dvalemodus"
+      },
+      "type": "boolean",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "uiQuickAction": false,
+      "icon": "/assets/icons/timer.svg"
+    },
     "poweroff": {
       "title": {
         "en": "Turn off",
@@ -526,6 +602,22 @@
       "uiComponent": "button",
       "uiQuickAction": true,
       "icon": "/assets/icons/power.svg"
+    },
+    "sleep": {
+      "title": {
+        "en": "Sleep",
+        "no": "Sett i dvale"
+      },
+      "desc": {
+        "en": "Puts the computer to sleep",
+        "no": "Setter datamaskinen i dvale"
+      },
+      "type": "boolean",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "uiQuickAction": false,
+      "icon": "/assets/icons/timer.svg"
     },
     "uptime": {
       "type": "number",

@@ -10,7 +10,11 @@
     "wakeOnLanSendFailed": "Failed to send the Wake-on-LAN packet.",
     "powerOnOverSshFailed": "Failed to turn on the computer over SSH.",
     "shutdownOverSshFailed": "Failed to shut down the computer over SSH.",
-    "customCommandNotAllowed": "This command contains a word that is not allowed for safety reasons."
+    "sleepOverSshFailed": "Failed to put the computer to sleep over SSH.",
+    "hibernateOverSshFailed": "Failed to hibernate the computer over SSH.",
+    "customCommandNotAllowed": "This command contains a word that is not allowed for safety reasons.",
+    "sleepUnsupported": "Sleep is not supported on Windows; use Hibernate instead.",
+    "hibernateUnsupported": "Hibernation is not supported on macOS; use Sleep instead."
   },
   "warnings": {
     "sshUnavailable": "Computer is reachable, but SSH is unavailable."

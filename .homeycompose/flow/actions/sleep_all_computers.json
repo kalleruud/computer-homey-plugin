@@ -1,0 +1,10 @@
+{
+  "title": {
+    "en": "Sleep all computers",
+    "no": "Sett alle datamaskiner i dvale"
+  },
+  "hint": {
+    "en": "Puts all computers to sleep over SSH.",
+    "no": "Setter alle datamaskiner i dvale via SSH."
+  }
+}
