@@ -1197,6 +1197,23 @@ describe('ComputerDevice', () => {
     expect(runtime.sshEndCount).toBe(1)
   })
 
+  it('sends the sudo password once when SSH prompts on stdout', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+    runtime.sshScenarios = [
+      { stdoutChunks: ['[sudo] password:', '[sudo] password:'] },
+    ]
+
+    await device.shutdownComputer()
+
+    expect(runtime.sshWrites).toEqual(['secret\n'])
+    expect(runtime.sshEndCount).toBe(1)
+  })
+
   it('treats an undefined ssh exit code as success when the channel closes', async () => {
     const device = createDevice({
       ipAddress: '192.168.1.20',
