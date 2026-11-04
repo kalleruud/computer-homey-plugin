@@ -96,6 +96,10 @@ export default class ComputerDevice extends Homey.Device {
     try {
       await shutdownComputer(settings)
     } catch (error) {
+      if (isErrorWithTranslationKey(error)) {
+        throw new Error(this.homey.__(error.message))
+      }
+
       this.error('Failed to shut down the computer over SSH', error)
       throw new Error(this.homey.__('errors.shutdownOverSshFailed'))
     }

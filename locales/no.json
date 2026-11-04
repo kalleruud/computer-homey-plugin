@@ -10,7 +10,11 @@
     "wakeOnLanSendFailed": "Kunne ikke sende Wake-on-LAN-pakken.",
     "powerOnOverSshFailed": "Kunne ikke slå på datamaskinen via SSH.",
     "shutdownOverSshFailed": "Kunne ikke slå av datamaskinen via SSH.",
-    "customCommandNotAllowed": "Denne kommandoen inneholder et ord som ikke er tillatt av sikkerhetshensyn."
+    "customCommandNotAllowed": "Denne kommandoen inneholder et ord som ikke er tillatt av sikkerhetshensyn.",
+    "sshKeyInvalid": "Kan ikke lese privat SSH-nøkkel; kontroller format og lagret passfrase.",
+    "sshKeyFailed": "SSH-nøkkelinnlogging eller tilkobling mislyktes; kontroller brukernavn, autorisert nøkkel og server.",
+    "sshKeyCommandFailed": "SSH-kommando mislyktes; kontroller kommando og kommandospesifikke NOPASSWD sudo-rettigheter.",
+    "sshKeyTimeout": "SSH-kommando fikk tidsavbrudd; kontroller kommando og passordfri sudo."
   },
   "warnings": {
     "sshUnavailable": "Datamaskinen er tilgjengelig, men SSH er utilgjengelig.",

@@ -59,3 +59,31 @@ Wake, monitor, and power down your computer from Homey.
 - [Driver photo](https://unsplash.com/photos/a-computer-monitor-sitting-on-top-of-a-desk-3ttxeT6-Flo) by [ichwar -](https://unsplash.com/@ilmuktigraphic)
 
 ICMP-only monitoring can be selected in device settings and does not check SSH availability or require SSH credentials. The default SSH + ping mode checks both concurrently. ICMP requires a working ping environment and target replies; blocked ICMP or a timeout can make a running computer appear offline. If ping cannot run, an ICMP monitoring warning is shown and the last known state is retained until monitoring recovers automatically. SSH power controls still require valid SSH settings.
+
+## SSH private keys
+
+For shutdown or SSH power-on, set the SSH username and paste the complete private
+key into **SSH private key** in the device settings. Supported formats are OpenSSH
+Ed25519/RSA and PEM RSA (including encrypted keys). Install the matching public key
+in the server account's `~/.ssh/authorized_keys`. For encrypted keys, save the exact
+passphrase in **Private key passphrase**, including any spaces. Replace the text
+to rotate a key; clear it to return to password authentication. With a key set,
+the SSH password is unused and authentication never falls back to passwords.
+
+The key is visible in the multiline field. The passphrase is visually masked;
+both are persisted per device on Homey for unattended use. The app adds no
+encryption at rest: Homey's [settings documentation](https://apps.developer.homey.app/the-basics/devices/settings)
+promises visual masking, not encryption. Treat device settings and Homey backups
+as credentials; use a dedicated account/key with limited permissions.
+
+In key mode, commands run without a terminal or interactive input, with a
+30-second timeout. Commands using sudo require command-specific `NOPASSWD`
+authorization. For example, use `visudo` to allow
+`homey ALL=(root) NOPASSWD: /usr/sbin/shutdown -h now` (verify the executable path
+on your server). Sudo is made non-interactive; missing authorization fails without
+sending a password or passphrase. Commands already authorized without sudo need
+no sudo rule. Existing password-mode sudo behavior is preserved.
+
+SSH power-on needs a reachable SSH endpoint, such as a BMC. An already powered-off
+host still needs Wake-on-LAN or another available controller. CA-signed user
+certificates, PuTTY PPK, agents and hardware-backed keys are not supported.
