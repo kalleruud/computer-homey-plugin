@@ -1,44 +1,57 @@
 import timers from 'node:timers'
-import { Client, utils } from 'ssh2'
-
 import {
-  SHUTDOWN_COMMANDS,
-  SSH_READY_TIMEOUT_MS,
-  SUDO_PROMPT,
-} from '../constants.js'
+  Client,
+  utils,
+  type ConnectConfig,
+  type PublicKeyAuthMethod,
+} from 'ssh2'
+
+import { SSH_READY_TIMEOUT_MS, SUDO_PROMPT } from '../constants.js'
 import { ComputerDriverSettings } from '../types.js'
+
+type SshAuthentication = Pick<ConnectConfig, 'password' | 'authHandler'>
+
+export function getSshAuthentication(
+  settings: ComputerDriverSettings
+): SshAuthentication {
+  if (!settings.sshPrivateKey) return { password: settings.sshPassword }
+
+  let key
+  try {
+    key = utils.parseKey(
+      settings.sshPrivateKey,
+      settings.sshKeyPassphrase || undefined
+    )
+  } catch {
+    throw new Error('errors.sshKeyInvalid')
+  }
+  if (
+    key instanceof Error ||
+    Array.isArray(key) ||
+    !['ssh-ed25519', 'ssh-rsa'].includes(key.type) ||
+    !key.isPrivateKey()
+  ) {
+    throw new Error('errors.sshKeyInvalid')
+  }
+  // ssh2 accepts parsed keys in an explicit public-key authentication method.
+  const method: PublicKeyAuthMethod = {
+    type: 'publickey',
+    username: settings.sshUsername,
+    key,
+  }
+  return { authHandler: [method] }
+}
 
 export async function runSshCommandOnHost(
   settings: ComputerDriverSettings,
   host: string,
   command: string,
-  usePty: boolean
+  usePty: boolean,
+  authentication: SshAuthentication
 ): Promise<void> {
   const keyMode = settings.sshPrivateKey.length > 0
-  if (keyMode) {
-    let key
-    try {
-      key = utils.parseKey(
-        settings.sshPrivateKey,
-        settings.sshKeyPassphrase || undefined
-      )
-    } catch {
-      throw new Error('errors.sshKeyInvalid')
-    }
-    if (
-      key instanceof Error ||
-      Array.isArray(key) ||
-      !['ssh-ed25519', 'ssh-rsa'].includes(key.type) ||
-      !key.isPrivateKey()
-    ) {
-      throw new Error('errors.sshKeyInvalid')
-    }
-    // No terminal or stdin credentials in key mode; sudo must be non-interactive.
-    if (command === SHUTDOWN_COMMANDS.linux) {
-      command = 'sudo -n shutdown -h now'
-    }
-    usePty = false
-  }
+  // No terminal or stdin credentials in key mode; sudo must be non-interactive.
+  if (keyMode) usePty = false
   const needsSudoPassword = usePty && settings.targetOs !== 'windows'
 
   await new Promise<void>((resolve, reject) => {
@@ -55,7 +68,7 @@ export async function runSshCommandOnHost(
       }
 
       settled = true
-      clearTimeout(timer)
+      timers.clearTimeout(timer)
       client.end()
 
       if (error) {
@@ -92,6 +105,7 @@ export async function runSshCommandOnHost(
     })
 
     client.once('ready', () => {
+      if (settled) return
       client.exec(command, { pty: usePty }, (error, stream) => {
         if (error) {
           finish(
@@ -146,13 +160,7 @@ export async function runSshCommandOnHost(
         host,
         port: settings.sshPort,
         username: settings.sshUsername,
-        ...(keyMode
-          ? {
-              privateKey: settings.sshPrivateKey,
-              passphrase: settings.sshKeyPassphrase || undefined,
-              authHandler: ['publickey'] as 'publickey'[],
-            }
-          : { password: settings.sshPassword }),
+        ...authentication,
         readyTimeout: SSH_READY_TIMEOUT_MS,
         keepaliveInterval: 2000,
         keepaliveCountMax: 2,

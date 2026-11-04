@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 import { generateKeyPairSync } from 'node:crypto'
 import { EventEmitter } from 'node:events'
+import type { PublicKeyAuthMethod } from 'ssh2'
 import { utils as sshUtils } from 'ssh2'
 
 process.env.DEBUG = '1'
@@ -12,6 +13,7 @@ type PingError = Error & {
 }
 
 type SshScenario = {
+  hang?: boolean
   closeCode?: number | null | undefined
   connectError?: Error
   execError?: Error
@@ -39,7 +41,7 @@ type SshConnectConfig = {
   password?: string
   privateKey?: string
   passphrase?: string
-  authHandler?: string[]
+  authHandler?: PublicKeyAuthMethod[]
   port: number
   readyTimeout: number
   username: string
@@ -95,6 +97,8 @@ type RuntimeState = {
   }>
   tcpOutcomes: TcpOutcome[]
 }
+
+const sshTimers = new Map<symbol, { callback: () => void; ms: number }>()
 
 const runtime: RuntimeState = {
   bindCount: 0,
@@ -224,13 +228,16 @@ class FakeSshStream extends EventEmitter {
 }
 
 class FakeSshClient extends EventEmitter {
+  static latest: FakeSshClient
   private scenario: SshScenario | undefined
 
   connect(config: SshConnectConfig) {
+    FakeSshClient.latest = this
     runtime.sshConnectConfigs.push(config)
     this.scenario = runtime.sshScenarios.shift() ?? { closeCode: 0 }
 
     queueMicrotask(() => {
+      if (this.scenario?.hang) return
       if (this.scenario?.connectError) {
         this.emit('error', this.scenario.connectError)
         return
@@ -594,6 +601,19 @@ mock.module('node:net', () => ({
   isIP: isIPv4,
 }))
 
+mock.module('node:timers', () => ({
+  default: {
+    setTimeout(callback: () => void, ms: number) {
+      const handle = Symbol('ssh timeout')
+      sshTimers.set(handle, { callback, ms })
+      return handle
+    },
+    clearTimeout(handle: symbol) {
+      sshTimers.delete(handle)
+    },
+  },
+}))
+
 mock.module('ssh2', () => ({
   Client: FakeSshClient,
   utils: sshUtils,
@@ -783,6 +803,70 @@ describe('ComputerDriver', () => {
 })
 
 describe('ComputerDevice', () => {
+  it('decrypts a key once per multi-address operation and shares the parsed key', async () => {
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    const parse = spyOn(sshUtils, 'parseKey')
+    try {
+      const device = createDevice({
+        ipAddress: '192.168.1.20,192.168.1.21',
+        sshUsername: 'admin',
+        sshPrivateKey: privateKey,
+        startupMode: 'ssh',
+      })
+      await device.shutdownComputer()
+      expect(parse).toHaveBeenCalledTimes(1)
+      expect(runtime.sshConnectConfigs[0]?.authHandler?.[0]?.key).toBe(
+        runtime.sshConnectConfigs[1]?.authHandler?.[0]?.key
+      )
+      await device.startComputer()
+      expect(parse).toHaveBeenCalledTimes(2)
+    } finally {
+      parse.mockRestore()
+    }
+  })
+
+  it('times out key commands, clears the timer and ignores late readiness', async () => {
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPrivateKey: privateKey,
+    })
+    runtime.sshScenarios = [{ hang: true }]
+    const pending = device.shutdownComputer()
+    const timeout = [...sshTimers.values()][0]
+    expect(timeout?.ms).toBe(30_000)
+    timeout?.callback()
+    await expect(pending).rejects.toThrow('errors.sshKeyTimeout')
+    expect(sshTimers.size).toBe(0)
+    expect(runtime.sshEndCount).toBe(1)
+    FakeSshClient.latest.emit('ready')
+    timeout?.callback()
+    expect(runtime.sshEndCount).toBe(1)
+    expect(runtime.sshExecCalls).toEqual([])
+  })
+
+  it('clears key command timers on success and connection, execution and stream errors', async () => {
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPrivateKey: privateKey,
+    })
+    await device.shutdownComputer()
+    expect(sshTimers.size).toBe(0)
+    for (const scenario of [
+      { connectError: new Error('connection') },
+      { execError: new Error('execution') },
+      { streamError: new Error('stream') },
+    ]) {
+      runtime.sshScenarios = [scenario]
+      await expect(device.shutdownComputer()).rejects.toThrow()
+      expect(sshTimers.size).toBe(0)
+    }
+    expect(runtime.sshEndCount).toBe(4)
+  })
+
   for (const type of ['ed25519', 'rsa', 'pem'] as const) {
     for (const encrypted of [false, true]) {
       it(`uses ${encrypted ? 'encrypted' : 'plain'} ${type} keys for shutdown and startup without passwords`, async () => {
@@ -814,9 +898,12 @@ describe('ComputerDevice', () => {
         await device.startComputer()
         expect(runtime.sshConnectConfigs).toHaveLength(2)
         for (const config of runtime.sshConnectConfigs) {
-          expect(config.privateKey).toBe(privateKey.trim())
-          expect(config.passphrase).toBe(passphrase || undefined)
-          expect(config.authHandler).toEqual(['publickey'])
+          const [auth] = config.authHandler ?? []
+          expect(auth?.type).toBe('publickey')
+          expect(auth?.username).toBe('admin')
+          expect(auth?.key).toHaveProperty('isPrivateKey')
+          expect(config).not.toHaveProperty('privateKey')
+          expect(config).not.toHaveProperty('passphrase')
           expect(config).not.toHaveProperty('password')
         }
         expect(runtime.sshWrites).toEqual([])

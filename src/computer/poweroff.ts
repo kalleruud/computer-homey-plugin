@@ -1,14 +1,22 @@
 import { SHUTDOWN_COMMANDS } from '../constants.js'
 import { ComputerDriverSettings } from '../types.js'
-import { runSshCommandOnHost } from './ssh-exec.js'
+import { getSshAuthentication, runSshCommandOnHost } from './ssh-exec.js'
 
 export async function shutdownComputerOverSsh(
   settings: ComputerDriverSettings
 ) {
+  const authentication = getSshAuthentication(settings)
+  const usePty = settings.targetOs !== 'windows'
+  const command =
+    settings.customShutdownCommand ||
+    (settings.sshPrivateKey && usePty
+      ? 'sudo -n shutdown -h now'
+      : SHUTDOWN_COMMANDS[settings.targetOs])
+
   try {
     await Promise.any(
       settings.ipAddresses.map(host =>
-        shutdownComputerOverSshOnHost(settings, host)
+        runSshCommandOnHost(settings, host, command, usePty, authentication)
       )
     )
   } catch (error) {
@@ -21,18 +29,4 @@ export async function shutdownComputerOverSsh(
 
     throw error
   }
-}
-
-async function shutdownComputerOverSshOnHost(
-  settings: ComputerDriverSettings,
-  host: string
-) {
-  const command =
-    settings.customShutdownCommand.length > 0
-      ? settings.customShutdownCommand
-      : SHUTDOWN_COMMANDS[settings.targetOs]
-
-  const usePty = settings.targetOs !== 'windows'
-
-  await runSshCommandOnHost(settings, host, command, usePty)
 }
