@@ -26,4 +26,4 @@ How it works
 OS command notes
 - Windows uses native SSH commands for shutdown, sleep, and hibernate.
 - Linux uses `systemctl suspend` and `systemctl hibernate` with sudo.
-- macOS sleep uses `pmset sleepnow`; hibernate uses a best-effort command sequence and may depend on hardware and power settings.
+- macOS sleep uses `pmset sleepnow`; hibernation is unsupported to avoid changing persistent power settings.

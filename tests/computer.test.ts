@@ -307,6 +307,8 @@ const testTranslations = {
     shutdownOverSshFailed: 'Failed to shut down the computer over SSH.',
     sleepOverSshFailed: 'Failed to put the computer to sleep over SSH.',
     hibernateOverSshFailed: 'Failed to hibernate the computer over SSH.',
+    hibernateUnsupported:
+      'Hibernation is not supported on macOS; use Sleep instead.',
     customCommandNotAllowed:
       'This command contains a word that is not allowed for safety reasons.',
   },
@@ -613,8 +615,6 @@ const SLEEP_COMMANDS = {
 
 const HIBERNATE_COMMANDS = {
   linux: 'sudo -S -p "[sudo] password:" systemctl hibernate',
-  macos:
-    'sudo -S -p "[sudo] password:" sh -c \'pmset hibernatemode 25; pmset sleepnow\'',
   windows: 'shutdown /h',
 } as const
 
@@ -1345,7 +1345,11 @@ describe('ComputerDevice', () => {
     })
 
     runtime.sshScenarios = [{ closeCode: 0 }]
-    await macHibernateDevice.hibernateComputer()
+    const connectionCount = runtime.sshConnectConfigs.length
+    await expect(macHibernateDevice.hibernateComputer()).rejects.toThrow(
+      'Hibernation is not supported on macOS; use Sleep instead.'
+    )
+    expect(runtime.sshConnectConfigs).toHaveLength(connectionCount)
 
     expect(runtime.sshExecCalls).toEqual([
       {
@@ -1355,10 +1359,6 @@ describe('ComputerDevice', () => {
       {
         command: HIBERNATE_COMMANDS.windows,
         options: { pty: false },
-      },
-      {
-        command: HIBERNATE_COMMANDS.macos,
-        options: { pty: true },
       },
     ])
   })

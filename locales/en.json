@@ -12,7 +12,8 @@
     "shutdownOverSshFailed": "Failed to shut down the computer over SSH.",
     "sleepOverSshFailed": "Failed to put the computer to sleep over SSH.",
     "hibernateOverSshFailed": "Failed to hibernate the computer over SSH.",
-    "customCommandNotAllowed": "This command contains a word that is not allowed for safety reasons."
+    "customCommandNotAllowed": "This command contains a word that is not allowed for safety reasons.",
+    "hibernateUnsupported": "Hibernation is not supported on macOS; use Sleep instead."
   },
   "warnings": {
     "sshUnavailable": "Computer is reachable, but SSH is unavailable."

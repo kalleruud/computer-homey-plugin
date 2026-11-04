@@ -30,7 +30,7 @@ export const SLEEP_COMMANDS = {
 export const HIBERNATE_COMMANDS = {
   windows: 'shutdown /h',
   linux: `sudo -S -p "${SUDO_PROMPT}" systemctl hibernate`,
-  macos: `sudo -S -p "${SUDO_PROMPT}" sh -c 'pmset hibernatemode 25; pmset sleepnow'`,
+  macos: null,
 } as const
 
 export const IS_DEBUG = process.env.DEBUG === '1'

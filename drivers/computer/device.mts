@@ -141,6 +141,9 @@ export default class ComputerDevice extends Homey.Device {
     try {
       await hibernateComputer(settings)
     } catch (error) {
+      if (isErrorWithTranslationKey(error)) {
+        throw new Error(this.homey.__(error.message))
+      }
       this.error('Failed to hibernate the computer over SSH', error)
       throw new Error(this.homey.__('errors.hibernateOverSshFailed'))
     }

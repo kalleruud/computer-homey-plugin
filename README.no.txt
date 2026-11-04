@@ -25,4 +25,4 @@ Slik fungerer det
 Merknader per operativsystem
 - Windows bruker innebygde SSH-kommandoer for avslåing, dvale og dvalemodus.
 - Linux bruker `systemctl suspend` og `systemctl hibernate` med sudo.
-- macOS bruker `pmset sleepnow` for dvale; dvalemodus er best effort og kan avhenge av maskinvare og strøminnstillinger.
+- macOS bruker `pmset sleepnow` for dvale; dvalemodus støttes ikke for å unngå varige endringer i strøminnstillingene.

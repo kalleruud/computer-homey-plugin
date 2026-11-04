@@ -3,7 +3,7 @@ import { Client } from 'ssh2'
 import { SSH_READY_TIMEOUT_MS, SUDO_PROMPT } from '../constants.js'
 import { ComputerDriverSettings } from '../types.js'
 
-export async function runSshCommandOnHost(
+async function runSshCommandOnHost(
   settings: ComputerDriverSettings,
   host: string,
   command: string,
@@ -94,4 +94,26 @@ export async function runSshCommandOnHost(
       keepaliveCountMax: 2,
     })
   })
+}
+
+export async function runSshCommand(
+  settings: ComputerDriverSettings,
+  command: string,
+  usePty = settings.targetOs !== 'windows'
+): Promise<void> {
+  try {
+    await Promise.any(
+      settings.ipAddresses.map(host =>
+        runSshCommandOnHost(settings, host, command, usePty)
+      )
+    )
+  } catch (error) {
+    if (error instanceof AggregateError) {
+      const [firstError] = error.errors
+      if (firstError instanceof Error) {
+        throw firstError
+      }
+    }
+    throw error
+  }
 }
