@@ -103,16 +103,17 @@ async function pollComputerConnectionState(
   }
 
   if (pingResults.includes(true)) {
+    const warning =
+      settings.monitoringMethod === 'icmp'
+        ? undefined
+        : SSH_UNAVAILABLE_WARNING_KEY
     debugLog(
       device,
-      `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=true warning=ssh_unavailable`
+      `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=true warning=${warning ?? 'none'}`
     )
     return {
       isOnline: true,
-      warning:
-        settings.monitoringMethod === 'icmp'
-          ? undefined
-          : SSH_UNAVAILABLE_WARNING_KEY,
+      warning,
     }
   }
 
@@ -156,7 +157,7 @@ async function refreshComputerState(device: Homey.Device): Promise<boolean> {
         }
 
         state.pingCommandMissingLogged = true
-        device.error('Ping command is not available for fallback status checks')
+        device.error('Ping is unavailable for computer monitoring')
       }
     )
 

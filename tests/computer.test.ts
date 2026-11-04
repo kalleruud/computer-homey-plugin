@@ -890,8 +890,7 @@ describe('ComputerDevice', () => {
     await runScheduledPoll(device)
 
     const pingMissingErrors = device.errorCalls.filter(
-      ([message]) =>
-        message === 'Ping command is not available for fallback status checks'
+      ([message]) => message === 'Ping is unavailable for computer monitoring'
     )
 
     expect(runtime.pingCalls).toEqual([
