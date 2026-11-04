@@ -1,8 +1,9 @@
 import { DEFAULT_POWER_ON_SSH_COMMAND } from '../constants.js'
 import { ComputerDriverSettings } from '../types.js'
-import { runSshCommandOnHost } from './ssh-exec.js'
+import { getSshAuthentication, runSshCommandOnHost } from './ssh-exec.js'
 
 export async function powerOnOverSsh(settings: ComputerDriverSettings) {
+  const authentication = getSshAuthentication(settings)
   const command =
     settings.customPowerOnCommand.length > 0
       ? settings.customPowerOnCommand
@@ -11,7 +12,7 @@ export async function powerOnOverSsh(settings: ComputerDriverSettings) {
   try {
     await Promise.any(
       settings.ipAddresses.map(host =>
-        runSshCommandOnHost(settings, host, command)
+        runSshCommandOnHost(settings, host, command, {}, authentication)
       )
     )
   } catch (error) {

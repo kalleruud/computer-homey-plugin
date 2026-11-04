@@ -10,7 +10,11 @@
     "wakeOnLanSendFailed": "Failed to send the Wake-on-LAN packet.",
     "powerOnOverSshFailed": "Failed to turn on the computer over SSH.",
     "shutdownOverSshFailed": "Failed to shut down the computer over SSH.",
-    "customCommandNotAllowed": "This command contains a word that is not allowed for safety reasons."
+    "customCommandNotAllowed": "This command contains a word that is not allowed for safety reasons.",
+    "sshKeyInvalid": "Cannot read SSH private key; check the supported format and saved passphrase.",
+    "sshKeyFailed": "SSH key authentication or connection failed; check the username, authorized key and server.",
+    "sshKeyCommandFailed": "SSH command failed; check the command and command-specific NOPASSWD sudo permissions.",
+    "sshKeyTimeout": "SSH command timed out; check the command and passwordless sudo permissions."
   },
   "warnings": {
     "sshUnavailable": "Computer is reachable, but SSH is unavailable."

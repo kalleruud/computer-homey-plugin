@@ -66,7 +66,11 @@ export async function pollBattery(
   if (!settings.batteryMonitoring) return
   const generation = generations.get(device)
   let value: number | null = null
-  if (online && settings.sshUsername && settings.sshPassword) {
+  if (
+    online &&
+    settings.sshUsername &&
+    (settings.sshPrivateKey || settings.sshPassword)
+  ) {
     for (const host of settings.ipAddresses) {
       try {
         value = parseBattery(
