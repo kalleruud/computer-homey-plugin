@@ -54,7 +54,7 @@ export async function startPolling(
 async function pollComputerConnectionState(
   device: Homey.Device,
   settings: ComputerDriverSettings,
-  onMissingPingCommand: () => void
+  onMissingPingCommand: (error: Error) => void
 ): Promise<ComputerConnectionState> {
   const validationError = getProbeValidationError(settings)
   if (validationError) {
@@ -156,13 +156,13 @@ async function refreshComputerState(
     const connectionState = await pollComputerConnectionState(
       device,
       settings,
-      () => {
+      error => {
         if (state.pingCommandMissingLogged) {
           return
         }
 
         state.pingCommandMissingLogged = true
-        device.error('Ping is unavailable for computer monitoring')
+        device.error('Ping is unavailable for computer monitoring', error)
       }
     )
 
@@ -261,7 +261,7 @@ async function probeTcpPort(host: string, port: number): Promise<boolean> {
 
 async function probePing(
   host: string,
-  onMissingPingCommand: () => void
+  onMissingPingCommand: (error: Error) => void
 ): Promise<boolean | undefined> {
   return new Promise(resolve => {
     execFile('ping', ['-c', '1', '-W', '1', host], (error, _stdout, stderr) => {
@@ -279,12 +279,24 @@ async function probePing(
           stderr || error.message
         )
       ) {
-        onMissingPingCommand()
-        resolve(undefined)
+        void probeNativePing(host, onMissingPingCommand).then(resolve)
         return
       }
 
       resolve(false)
     })
   })
+}
+
+async function probeNativePing(
+  host: string,
+  onUnavailable: (error: Error) => void
+): Promise<boolean | undefined> {
+  try {
+    const { ping } = await import('@homebridge/node-icmp-ping')
+    return (await ping(host)).success
+  } catch (error) {
+    onUnavailable(error instanceof Error ? error : new Error(String(error)))
+    return undefined
+  }
 }

@@ -88,6 +88,8 @@ type RuntimeState = {
     args: string[]
     file: string
   }>
+  nativePingCalls: string[]
+  nativePingOutcomes: Array<boolean | Error>
   pingOutcomes: Array<PingError | null>
   sentPackets: RecordedPacket[]
   setTimeoutValues: number[]
@@ -113,6 +115,8 @@ const runtime: RuntimeState = {
   destroyedSockets: 0,
   ipChecks: [],
   pingCalls: [],
+  nativePingCalls: [],
+  nativePingOutcomes: [],
   pingOutcomes: [],
   sentPackets: [],
   setTimeoutValues: [],
@@ -134,6 +138,8 @@ function resetRuntime() {
   runtime.dgramSendError = undefined
   runtime.ipChecks = []
   runtime.pingCalls = []
+  runtime.nativePingCalls = []
+  runtime.nativePingOutcomes = []
   runtime.pingOutcomes = []
   runtime.sentPackets = []
   runtime.setTimeoutValues = []
@@ -582,6 +588,16 @@ mock.module('homey', () => ({
 
 mock.module('node:crypto', () => ({
   randomUUID: () => runtime.defaultUuid,
+}))
+
+mock.module('@homebridge/node-icmp-ping', () => ({
+  ping: async (host: string) => {
+    runtime.nativePingCalls.push(host)
+    const outcome =
+      runtime.nativePingOutcomes.shift() ?? new Error('ICMP unavailable')
+    if (outcome instanceof Error) throw outcome
+    return { success: outcome, latency: outcome ? 3 : null, message: '' }
+  },
 }))
 
 mock.module('node:child_process', () => ({
@@ -1623,6 +1639,35 @@ describe('ComputerDevice', () => {
     expect(device.warning).toBe('warnings.icmpUnavailable')
     expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
     expect(runtime.tcpCalls).toHaveLength(0)
+  })
+
+  it('uses native ICMP when the system ping executable is missing', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: '10.0.1.229',
+    })
+    const missing = Object.assign(new Error('spawn ping ENOENT'), {
+      code: 'ENOENT',
+    })
+    runtime.pingOutcomes = [missing, missing, missing]
+    runtime.nativePingOutcomes = [true, false, true]
+    await device.onInit()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('connected')).toBe(false)
+    expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.driver.turnedOnTriggerCalls).toEqual([device])
+    expect(runtime.nativePingCalls).toEqual([
+      '10.0.1.229',
+      '10.0.1.229',
+      '10.0.1.229',
+    ])
+    expect(runtime.tcpCalls).toHaveLength(0)
+    expect(device.errorCalls).toHaveLength(0)
   })
 
   it('keeps successful SSH observations when ping is unavailable', async () => {

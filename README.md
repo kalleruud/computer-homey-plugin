@@ -58,7 +58,7 @@ Wake, monitor, and power down your computer from Homey.
 - [Store photo](https://unsplash.com/photos/white-and-black-hp-laptop-hRI8f-2WyDw) by [John M. Smith](https://unsplash.com/@john_smith)
 - [Driver photo](https://unsplash.com/photos/a-computer-monitor-sitting-on-top-of-a-desk-3ttxeT6-Flo) by [ichwar -](https://unsplash.com/@ilmuktigraphic)
 
-ICMP-only monitoring can be selected in device settings and does not check SSH availability or require SSH credentials. The default SSH + ping mode checks both concurrently. ICMP requires a working ping environment and target replies; blocked ICMP or a timeout can make a running computer appear offline. If ping cannot run, an ICMP monitoring warning is shown and the last known state is retained until monitoring recovers automatically. SSH power controls still require valid SSH settings.
+ICMP-only monitoring can be selected in device settings and does not check SSH availability or require SSH credentials. The default SSH + ping mode checks both concurrently. ICMP uses the system ping command or a bundled native ICMP fallback when the command is unavailable, and requires ICMP socket permissions and target replies; blocked ICMP or a timeout can make a running computer appear offline. If ping cannot run, an ICMP monitoring warning is shown and the last known state is retained until monitoring recovers automatically. SSH power controls still require valid SSH settings.
 
 ### Laptop battery monitoring
 
