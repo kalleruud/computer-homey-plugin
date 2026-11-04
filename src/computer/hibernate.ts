@@ -9,5 +9,8 @@ export async function hibernateComputerOverSsh(
   if (command === null) {
     throw new Error('errors.hibernateUnsupported')
   }
-  await runSshCommand(settings, command)
+  await runSshCommand(settings, command, {
+    requireExitCode: true,
+    timeoutMs: 30_000,
+  })
 }

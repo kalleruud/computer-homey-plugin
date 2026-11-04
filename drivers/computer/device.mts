@@ -125,6 +125,9 @@ export default class ComputerDevice extends Homey.Device {
     try {
       await sleepComputer(settings)
     } catch (error) {
+      if (isErrorWithTranslationKey(error)) {
+        throw new Error(this.homey.__(error.message))
+      }
       this.error('Failed to put the computer to sleep over SSH', error)
       throw new Error(this.homey.__('errors.sleepOverSshFailed'))
     }

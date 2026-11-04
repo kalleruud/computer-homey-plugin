@@ -20,10 +20,12 @@ Before you add a device
 
 How it works
 - Turning the device on sends a Wake-on-LAN magic packet for each configured MAC (broadcast is still inferred from the paired IP in the list).
-- Turning the device off, sleeping it, or hibernating it connects over SSH on each configured IP until one succeeds and runs the default command for the selected OS.
+- Turning the device off, sleeping it, or hibernating it connects over SSH on each configured IP until one succeeds and runs the configured shutdown command or the supported sleep/hibernate command for the selected OS.
 - The online state is checked across all IPs: SSH is tried on every address in parallel with ping fallback; if any address answers, the computer counts as online. If SSH is unavailable everywhere but ping still responds on at least one, Homey shows a connectivity warning.
 
 OS command notes
-- Windows uses native SSH commands for shutdown, sleep, and hibernate.
+- Windows supports shutdown and hibernation; sleep is deferred because SetSuspendState is not a compatible rundll32 entry point.
 - Linux uses `systemctl suspend` and `systemctl hibernate` with sudo.
 - macOS sleep uses `pmset sleepnow`; hibernation is unsupported to avoid changing persistent power settings.
+
+Sleep and hibernate actions require an explicit successful SSH exit status within 30 seconds. A disconnect or timeout reports an unconfirmed action, even if the computer did enter sleep; check reachability before retrying. Success confirms command acceptance, not hardware sleep or wake support. Wake-on-LAN after sleep or hibernation depends on firmware, network adapter and OS settings; SSH startup requires a separate reachable controller.

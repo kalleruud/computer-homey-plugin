@@ -7,5 +7,5 @@ export async function powerOnOverSsh(settings: ComputerDriverSettings) {
     settings.customPowerOnCommand.length > 0
       ? settings.customPowerOnCommand
       : DEFAULT_POWER_ON_SSH_COMMAND
-  await runSshCommand(settings, command, false)
+  await runSshCommand(settings, command, { usePty: false })
 }

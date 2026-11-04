@@ -19,10 +19,12 @@ Før du legger til en enhet
 
 Slik fungerer det
 - Når du slår på enheten, sendes en Wake-on-LAN-pakke.
-- Når du slår av enheten, setter den i dvale eller dvalemodus, kobler appen til via SSH på hver konfigurert IP til én lykkes og kjører standardkommandoen for valgt operativsystem.
+- Når du slår av enheten, setter den i dvale eller dvalemodus, kobler appen til via SSH på hver konfigurert IP til én lykkes og kjører angitt avslåingskommando eller støttet dvale-/dvalemoduskommando for valgt operativsystem.
 - Nettstatus sjekkes først med SSH. Hvis SSH er utilgjengelig, men ping svarer, viser Homey en tilkoblingsadvarsel.
 
 Merknader per operativsystem
-- Windows bruker innebygde SSH-kommandoer for avslåing, dvale og dvalemodus.
+- Windows støtter avslåing og dvalemodus; dvale er utsatt fordi SetSuspendState ikke er kompatibel med rundll32.
 - Linux bruker `systemctl suspend` og `systemctl hibernate` med sudo.
 - macOS bruker `pmset sleepnow` for dvale; dvalemodus støttes ikke for å unngå varige endringer i strøminnstillingene.
+
+Dvale og dvalemodus krever en vellykket SSH-avslutningskode innen 30 sekunder. Frakobling eller tidsavbrudd gir en feil selv om datamaskinen gikk i dvale; sjekk tilgjengeligheten før du prøver igjen. Suksess bekrefter kommandoen, ikke maskinvarens støtte for dvale og vekking. Wake-on-LAN etter dvale avhenger av fastvare, nettverkskort og operativsystem; SSH-oppstart krever en separat tilgjengelig kontroller.

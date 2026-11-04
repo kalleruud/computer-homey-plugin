@@ -22,7 +22,7 @@ export const SHUTDOWN_COMMANDS = {
 } as const
 
 export const SLEEP_COMMANDS = {
-  windows: 'rundll32.exe powrprof.dll,SetSuspendState 0,1,0',
+  windows: null,
   linux: `sudo -S -p "${SUDO_PROMPT}" systemctl suspend`,
   macos: `sudo -S -p "${SUDO_PROMPT}" pmset sleepnow`,
 } as const
