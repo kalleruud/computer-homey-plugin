@@ -1,7 +1,7 @@
 {
   "1.0.3": {
-    "en": "Fixed mobile app and capability icon rendering and updated the app icon to use its primary color.",
-    "no": "Rettet visning av app- og kapabilitetsikoner i mobilappen og oppdaterte appikonet til å bruke appens primærfarge."
+    "en": "Fixed mobile app and capability icon rendering and updated the app icon to use its primary color and added SSH private-key authentication with command timeouts for shutdown and SSH power-on.",
+    "no": "Rettet visning av app- og kapabilitetsikoner i mobilappen og oppdaterte appikonet til å bruke appens primærfarge og la til SSH-nøkkelinnlogging med kommandotidsavbrudd for avslåing og SSH-oppstart."
   },
   "1.0.2": {
     "en": "Added Norwegian translations across the app and Flow cards; comma-separated IP and MAC lists so Wake-on-LAN targets every configured MAC, shutdown tries SSH on each listed IP until one succeeds, and the device shows online when any address responds; SSH startup mode alongside Wake-on-LAN with optional custom power-on and shutdown commands validated against a safety blocklist; a fix for crashes when SSH shutdown ended without an exit code; and device settings grouped into Computer and SSH sections.",
