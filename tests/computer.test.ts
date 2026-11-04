@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { EventEmitter } from 'node:events'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 process.env.DEBUG = '1'
 
@@ -10,6 +13,7 @@ type PingError = Error & {
 }
 
 type SshScenario = {
+  execute?: (command: string) => string
   closeCode?: number | null | undefined
   connectError?: Error
   execError?: Error
@@ -261,7 +265,9 @@ class FakeSshClient extends EventEmitter {
         return
       }
 
-      for (const chunk of this.scenario?.stdoutChunks ?? []) {
+      for (const chunk of this.scenario?.execute
+        ? [this.scenario.execute(command)]
+        : (this.scenario?.stdoutChunks ?? [])) {
         stream.emit('data', Buffer.from(chunk))
       }
 
@@ -1405,19 +1411,136 @@ describe('Laptop battery monitoring', () => {
     expect(device.hasCapability('measure_battery')).toBe(false)
   })
 
-  it('uses the lowest valid percentage for incomparable capacities on every OS', async () => {
-    for (const os of ['linux', 'macos', 'windows']) {
-      const { device } = await laptop(os)
+  it('uses the lowest percentage for charge-only batteries with different voltages', async () => {
+    const { device } = await laptop()
+    const root = mkdtempSync(join(tmpdir(), 'battery-'))
+    try {
+      for (const [name, percent, remaining, full, voltage] of [
+        ['BAT0', 20, 200, 1000, 12000000],
+        ['BAT1', 80, 800, 1000, 6000000],
+      ] as const) {
+        const dir = join(root, name)
+        mkdirSync(dir)
+        for (const [key, value] of Object.entries({
+          type: 'Battery',
+          scope: 'System',
+          capacity: percent,
+          charge_now: remaining,
+          charge_full: full,
+          voltage_now: voltage,
+        }))
+          writeFileSync(join(dir, key), String(value))
+      }
       runtime.tcpOutcomes = ['connect']
       runtime.sshScenarios = [
         {
           closeCode: 0,
-          stdoutChunks: ['40|4|10|energy\n25|1|4|charge\n101|||\nNaN|||'],
+          execute: command => {
+            const result = Bun.spawnSync([
+              'sh',
+              '-c',
+              command.replace('/sys/class/power_supply', root),
+            ])
+            expect(result.exitCode).toBe(0)
+            return result.stdout.toString()
+          },
         },
       ]
       await device.onInit()
-      expect(device.getCapabilityValue('measure_battery')).toBe(25)
+      expect(device.getCapabilityValue('measure_battery')).toBe(20)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
     }
+  })
+
+  it('executes the macOS query against native ioreg output', async () => {
+    const { device } = await laptop('macos')
+    runtime.tcpOutcomes = ['connect']
+    runtime.sshScenarios = [
+      {
+        closeCode: 0,
+        execute: command => {
+          expect(command).toContain('ioreg -r -c AppleSmartBattery')
+          const fixture =
+            '  "CurrentCapacity" = 75\n  "MaxCapacity" = 100\n  "AppleRawCurrentCapacity" = 3000\n  "AppleRawMaxCapacity" = 4000\n'
+          const result = Bun.spawnSync(
+            [
+              'sh',
+              '-c',
+              command.replace('ioreg -r -c AppleSmartBattery', 'cat'),
+            ],
+            { stdin: Buffer.from(fixture) }
+          )
+          expect(result.exitCode).toBe(0)
+          expect(result.stdout.toString()).toBe('75|3000|4000|raw\n')
+          return result.stdout.toString()
+        },
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(75)
+  })
+
+  it('uses the Windows active-system-battery query and its capacity output contract', async () => {
+    const { device } = await laptop('windows')
+    runtime.tcpOutcomes = ['connect']
+    runtime.sshScenarios = [
+      {
+        closeCode: 0,
+        execute: command => {
+          expect(command).toStartWith(
+            'powershell.exe -NoProfile -NonInteractive'
+          )
+          expect(command).toContain(
+            'Get-CimInstance -Namespace root/wmi -ClassName BatteryStatus'
+          )
+          expect(command).toContain('Where-Object Active')
+          expect(command).toContain('BatteryFullChargedCapacity')
+          expect(command).toContain(
+            'Where-Object InstanceName -eq $b.InstanceName'
+          )
+          expect(command).toContain("'{0}|{1}|{2}|mWh' -f")
+          // PowerShell -f output for two WMI battery pairs: 10/20 Wh and 60/80 Wh.
+          return '50|10000|20000|mWh\r\n75|60000|80000|mWh\r\n'
+        },
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(70)
+  })
+
+  it('preserves threshold history across unrelated settings saves', async () => {
+    const { device, driver } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'connect']
+    runtime.sshScenarios = Array.from({ length: 3 }, () => ({
+      closeCode: 0,
+      stdoutChunks: ['20|||'],
+    }))
+    await device.onInit()
+    const card = driver.homey.flow.getDeviceTriggerCard(
+      'computer_battery_below'
+    )
+    const trigger = card.runListener
+    // Capture the actual previous/current state passed to the Homey card.
+    const states: unknown[] = []
+    Object.assign(card, {
+      trigger: async (_device: unknown, _tokens: unknown, state: unknown) => {
+        states.push(state)
+      },
+    })
+    device.settings = { ...device.settings, macAddress: '11:22:33:44:55:66' }
+    await device.onSettings({
+      changedKeys: ['macAddress'],
+      newSettings: device.settings,
+    })
+    expect(states[0]).toEqual({ value: 20, previous: 20 })
+    expect(await trigger?.({ threshold: 30 }, states[0])).toBe(false)
+    await device.onSettings({
+      changedKeys: ['sshPassword'],
+      newSettings: device.settings,
+    })
+    expect(states[1]).toEqual({ value: 20, previous: null })
+    expect(await trigger?.({ threshold: 30 }, states[1])).toBe(true)
   })
 
   it('implements strict independent threshold entries and rejects unknown conditions', async () => {

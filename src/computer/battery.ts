@@ -36,7 +36,7 @@ function parseBattery(output: string): number | null {
   if (!rows.length) return null
   const weighted = rows.every(
     row =>
-      row.unit &&
+      ['energy', 'mWh'].includes(row.unit ?? '') &&
       row.unit === rows[0]?.unit &&
       Number.isFinite(row.remaining) &&
       Number.isFinite(row.full) &&
@@ -74,8 +74,7 @@ export async function pollBattery(
             settings,
             host,
             commands[settings.targetOs],
-            false,
-            true
+            { timeoutMs: 10_000, maxOutputBytes: 262144, requireExitCode: true }
           )
         )
         break

@@ -34,5 +34,5 @@ async function shutdownComputerOverSshOnHost(
 
   const usePty = settings.targetOs !== 'windows'
 
-  await runSshCommandOnHost(settings, host, command, usePty)
+  await runSshCommandOnHost(settings, host, command, { usePty })
 }

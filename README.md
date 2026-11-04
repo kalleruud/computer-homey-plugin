@@ -69,6 +69,8 @@ Windows PowerShell and the active system battery classes in `root/wmi` (not UPS 
 peripheral APIs). Unsupported firmware/providers or unavailable commands report unknown.
 Comparable full-charge and remaining capacities are summed for a weighted percentage;
 otherwise the lowest valid battery percentage is used, never an unweighted average.
+Charge-only capacities (including macOS raw charge) use this fallback because battery
+voltages may differ; only comparable energy capacities are summed.
 
 Polling uses the existing interval (60 seconds by default, 10–3,600 seconds).
 Offline computers, missing batteries and failed/invalid SSH queries report unknown,

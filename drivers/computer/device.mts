@@ -42,7 +42,20 @@ export default class ComputerDevice extends Homey.Device {
   override async onSettings(event: DeviceSettingsEvent) {
     this.log('Computer settings changed', event.changedKeys)
     await ensureCapabilities(this, event.newSettings)
-    await resetBattery(this)
+    if (
+      event.changedKeys.some(key =>
+        [
+          'batteryMonitoring',
+          'ipAddress',
+          'targetOs',
+          'sshPort',
+          'sshUsername',
+          'sshPassword',
+        ].includes(key)
+      )
+    ) {
+      await resetBattery(this)
+    }
     await startPolling(this, event.newSettings)
   }
 

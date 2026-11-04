@@ -8,9 +8,19 @@ export async function runSshCommandOnHost(
   settings: ComputerDriverSettings,
   host: string,
   command: string,
-  usePty: boolean,
-  query = false
+  options: {
+    usePty?: boolean
+    timeoutMs?: number
+    maxOutputBytes?: number
+    requireExitCode?: boolean
+  } = {}
 ): Promise<string> {
+  const {
+    usePty = false,
+    timeoutMs,
+    maxOutputBytes,
+    requireExitCode = false,
+  } = options
   const needsSudoPassword = usePty && settings.targetOs !== 'windows'
 
   return new Promise<string>((resolve, reject) => {
@@ -20,10 +30,10 @@ export async function runSshCommandOnHost(
     let stdout = ''
     let stderr = ''
 
-    const timer = query
+    const timer = timeoutMs
       ? queryTimeout(
-          () => finish(new Error('Battery query timed out')),
-          SSH_READY_TIMEOUT_MS
+          () => finish(new Error('SSH command timed out')),
+          timeoutMs
         )
       : undefined
 
@@ -71,17 +81,27 @@ export async function runSshCommandOnHost(
         stream.on('data', (data: Buffer) => {
           const chunk = data.toString()
           stdout += chunk
-          if (query && stdout.length > 262144)
-            finish(new Error('Battery output too large'))
+          if (
+            maxOutputBytes &&
+            Buffer.byteLength(stdout) + Buffer.byteLength(stderr) >
+              maxOutputBytes
+          )
+            finish(new Error('SSH output too large'))
           maybeSendPassword(chunk, stream)
         })
         stream.stderr.on('data', (data: Buffer) => {
           const chunk = data.toString()
           stderr += chunk
+          if (
+            maxOutputBytes &&
+            Buffer.byteLength(stdout) + Buffer.byteLength(stderr) >
+              maxOutputBytes
+          )
+            finish(new Error('SSH output too large'))
           maybeSendPassword(chunk, stream)
         })
         stream.once('close', (code: number | null | undefined) => {
-          if (query ? code === 0 : !code) {
+          if (requireExitCode ? code === 0 : !code) {
             finish()
             return
           }
