@@ -1,7 +1,7 @@
 {
   "1.0.3": {
-    "en": "Fixed mobile app and capability icon rendering and updated the app icon to use its primary color and added SSH private-key authentication with command timeouts for shutdown and SSH power-on and added optional laptop battery monitoring over password or private-key SSH with threshold Flow cards.",
-    "no": "Rettet visning av app- og kapabilitetsikoner i mobilappen og oppdaterte appikonet til å bruke appens primærfarge og la til SSH-nøkkelinnlogging med kommandotidsavbrudd for avslåing og SSH-oppstart og la til valgfri batteriovervåking via SSH med passord eller privatnøkkel og terskelkort i Flow."
+    "en": "Fixed mobile app and capability icon rendering and updated the app icon to use its primary color and added SSH private-key authentication with command timeouts for shutdown and SSH power-on and added optional laptop battery monitoring over password or private-key SSH with threshold Flow cards and diagnostic battery logging.",
+    "no": "Rettet visning av app- og kapabilitetsikoner i mobilappen og oppdaterte appikonet til å bruke appens primærfarge og la til SSH-nøkkelinnlogging med kommandotidsavbrudd for avslåing og SSH-oppstart og la til valgfri batteriovervåking via SSH med passord eller privatnøkkel og terskelkort i Flow og diagnostisk batterilogging."
   },
   "1.0.2": {
     "en": "Added Norwegian translations across the app and Flow cards; comma-separated IP and MAC lists so Wake-on-LAN targets every configured MAC, shutdown tries SSH on each listed IP until one succeeds, and the device shows online when any address responds; SSH startup mode alongside Wake-on-LAN with optional custom power-on and shutdown commands validated against a safety blocklist; a fix for crashes when SSH shutdown ended without an exit code; and device settings grouped into Computer and SSH sections.",

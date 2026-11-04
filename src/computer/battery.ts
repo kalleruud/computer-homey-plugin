@@ -1,4 +1,5 @@
 import type Homey from 'homey'
+import { debugLog } from '../lib.js'
 import type { ComputerDriverSettings } from '../types.js'
 import { runSshCommandOnHost } from './ssh-exec.js'
 
@@ -63,7 +64,10 @@ export async function pollBattery(
   settings: ComputerDriverSettings,
   online: boolean
 ) {
-  if (!settings.batteryMonitoring) return
+  if (!settings.batteryMonitoring) {
+    debugLog(device, 'Battery monitoring disabled')
+    return
+  }
   const generation = generations.get(device)
   let value: number | null = null
   if (
@@ -83,7 +87,10 @@ export async function pollBattery(
         )
         break
       } catch {
-        /* Try the next configured host. */
+        debugLog(
+          device,
+          'Battery SSH query failed; trying the next configured host'
+        )
       }
     }
   }
@@ -92,6 +99,10 @@ export async function pollBattery(
     !device.hasCapability('measure_battery')
   )
     return
+  debugLog(
+    device,
+    `Battery reading: ${value === null ? 'unknown' : `${value}%`}`
+  )
   const previous = readings.get(device) ?? null
   readings.set(device, value)
   try {
