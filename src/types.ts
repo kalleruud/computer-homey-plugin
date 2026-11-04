@@ -18,6 +18,8 @@ export type ComputerDriverSettings = {
   customShutdownCommand: string
   targetOs: TargetOs
   sshUsername: string
+  sshPrivateKey: string
+  sshKeyPassphrase: string
   sshPassword: string
   sshPort: number
 }

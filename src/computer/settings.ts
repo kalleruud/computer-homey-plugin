@@ -17,6 +17,8 @@ type RawComputerSettings = {
   customShutdownCommand?: unknown
   targetOs?: unknown
   sshUsername?: unknown
+  sshPrivateKey?: unknown
+  sshKeyPassphrase?: unknown
   sshPassword?: unknown
   sshPort?: unknown
 }
@@ -54,6 +56,14 @@ export function getComputerSettings(
     targetOs: getTargetOs(settings.targetOs),
     sshUsername: getTrimmedString(settings.sshUsername),
     sshPassword: getTrimmedString(settings.sshPassword),
+    sshPrivateKey: getTrimmedString(settings.sshPrivateKey).replaceAll(
+      /\r\n?/g,
+      '\n'
+    ),
+    sshKeyPassphrase:
+      typeof settings.sshKeyPassphrase === 'string'
+        ? settings.sshKeyPassphrase
+        : '',
     sshPort: getPort(settings.sshPort),
   }
 }
@@ -134,7 +144,7 @@ function assertSshCredentials(settings: ComputerDriverSettings) {
     throw new Error(ERROR_KEYS.sshUsernameRequired)
   }
 
-  if (settings.sshPassword.length === 0) {
+  if (!settings.sshPrivateKey && settings.sshPassword.length === 0) {
     throw new Error(ERROR_KEYS.sshPasswordRequired)
   }
 }

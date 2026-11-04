@@ -422,8 +422,34 @@
                 "no": "SSH-passord"
               },
               "hint": {
-                "en": "Required for remote shutdown and for SSH power-on.",
-                "no": "Påkrevd for fjernavslåing og SSH-oppstart."
+                "en": "Required only when no SSH private key is configured.",
+                "no": "Påkrevd bare når ingen privat SSH-nøkkel er angitt."
+              },
+              "value": ""
+            },
+            {
+              "id": "sshPrivateKey",
+              "type": "textarea",
+              "label": {
+                "en": "SSH private key",
+                "no": "Privat SSH-nøkkel"
+              },
+              "hint": {
+                "en": "Paste the complete OpenSSH Ed25519/RSA or PEM RSA key. Visible and saved on Homey; clear to use password login.",
+                "no": "Lim inn hele OpenSSH Ed25519/RSA- eller PEM RSA-nøkkelen. Synlig og lagret på Homey; tøm for passordinnlogging."
+              },
+              "value": ""
+            },
+            {
+              "id": "sshKeyPassphrase",
+              "type": "password",
+              "label": {
+                "en": "Private key passphrase",
+                "no": "Passfrase for privat nøkkel"
+              },
+              "hint": {
+                "en": "Optional, saved for encrypted keys. Whitespace is significant. Key mode requires passwordless sudo when sudo is used.",
+                "no": "Valgfritt, lagres for krypterte nøkler. Mellomrom bevares. Nøkkelmodus krever passordfri sudo når sudo brukes."
               },
               "value": ""
             },
