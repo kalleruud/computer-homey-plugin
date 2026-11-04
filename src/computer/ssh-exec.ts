@@ -1,3 +1,4 @@
+import { clearTimeout, setTimeout as queryTimeout } from 'node:timers'
 import { Client } from 'ssh2'
 
 import { SSH_READY_TIMEOUT_MS, SUDO_PROMPT } from '../constants.js'
@@ -7,16 +8,24 @@ export async function runSshCommandOnHost(
   settings: ComputerDriverSettings,
   host: string,
   command: string,
-  usePty: boolean
-): Promise<void> {
+  usePty: boolean,
+  query = false
+): Promise<string> {
   const needsSudoPassword = usePty && settings.targetOs !== 'windows'
 
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     const client = new Client()
     let settled = false
     let passwordSent = false
     let stdout = ''
     let stderr = ''
+
+    const timer = query
+      ? queryTimeout(
+          () => finish(new Error('Battery query timed out')),
+          SSH_READY_TIMEOUT_MS
+        )
+      : undefined
 
     const finish = (error?: Error) => {
       if (settled) {
@@ -24,6 +33,7 @@ export async function runSshCommandOnHost(
       }
 
       settled = true
+      clearTimeout(timer)
       client.end()
 
       if (error) {
@@ -31,7 +41,7 @@ export async function runSshCommandOnHost(
         return
       }
 
-      resolve()
+      resolve(stdout)
     }
 
     const maybeSendPassword = (
@@ -61,6 +71,8 @@ export async function runSshCommandOnHost(
         stream.on('data', (data: Buffer) => {
           const chunk = data.toString()
           stdout += chunk
+          if (query && stdout.length > 262144)
+            finish(new Error('Battery output too large'))
           maybeSendPassword(chunk, stream)
         })
         stream.stderr.on('data', (data: Buffer) => {
@@ -69,7 +81,7 @@ export async function runSshCommandOnHost(
           maybeSendPassword(chunk, stream)
         })
         stream.once('close', (code: number | null | undefined) => {
-          if (!code) {
+          if (query ? code === 0 : !code) {
             finish()
             return
           }

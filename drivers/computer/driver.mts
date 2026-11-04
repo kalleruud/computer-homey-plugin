@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import Homey from 'homey'
+import { registerBatteryFlows } from '../../src/computer/battery.js'
 import { FLOW_CARD_IDS } from '../../src/constants.js'
 import type { FlowComputerDevice } from '../../src/types.js'
 
@@ -12,6 +13,7 @@ export default class ComputerDriver extends Homey.Driver {
   private anyTurnedOffTriggerCard!: Homey.FlowCardTrigger
 
   override async onInit() {
+    registerBatteryFlows(this.homey)
     this.turnedOnTriggerCard = this.homey.flow.getDeviceTriggerCard(
       FLOW_CARD_IDS.triggers.turnedOn
     )

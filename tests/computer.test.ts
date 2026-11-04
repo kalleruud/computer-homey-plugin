@@ -59,7 +59,7 @@ type FakeActionOrConditionCard = {
   runListener?: FakeFlowRunListener
 }
 
-type FakeTriggerCard = {
+type FakeTriggerCard = FakeActionOrConditionCard & {
   calls: Array<{ device: unknown; tokens?: object }>
   trigger: (device: unknown, tokens?: object) => Promise<void>
 }
@@ -398,6 +398,10 @@ class FakeDriver {
 
   private createTriggerCard() {
     const card: FakeTriggerCard = {
+      registerRunListener: listener => {
+        card.runListener = listener
+        return card
+      },
       calls: [],
       trigger: async (device, tokens) => {
         card.calls.push({ device, tokens })
@@ -477,9 +481,9 @@ class FakeDevice {
   capabilityListeners = new Map<string, () => Promise<void> | void>()
   capabilitySetCalls: Array<{
     capability: string
-    value: number | boolean
+    value: number | boolean | null
   }> = []
-  capabilityValues = new Map<string, number | boolean>()
+  capabilityValues = new Map<string, number | boolean | null>()
   errorCalls: unknown[][] = []
   homey = createHomeyRuntime()
   logs: unknown[][] = []
@@ -531,7 +535,7 @@ class FakeDevice {
     )
   }
 
-  async setCapabilityValue(capability: string, value: number | boolean) {
+  async setCapabilityValue(capability: string, value: number | boolean | null) {
     this.capabilitySetCalls.push({ capability, value })
     this.capabilityValues.set(capability, value)
   }
@@ -1358,4 +1362,132 @@ describe('ComputerDevice', () => {
     ])
     expect(device.homey.intervals.size).toBe(0)
   })
+})
+
+describe('Laptop battery monitoring', () => {
+  async function laptop(targetOs = 'linux') {
+    const device = createDevice({
+      batteryMonitoring: true,
+      targetOs,
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPassword: 'secret',
+    })
+    const driver = new ComputerDriver() as unknown as FakeDriver & {
+      onInit(): Promise<void>
+    }
+    await driver.onInit()
+    Object.assign(device.homey, { flow: driver.homey.flow })
+    return { device, driver }
+  }
+
+  it('adds optional capability, aggregates capacities and clears failed/offline readings', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'timeout']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['20|20|100|energy\n80|240|300|energy'] },
+      { closeCode: 1 },
+    ]
+    await device.onInit()
+    expect(device.hasCapability('measure_battery')).toBe(true)
+    expect(device.getCapabilityValue('measure_battery')).toBe(65)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.hasCapability('measure_battery')).toBe(true)
+    device.settings = { ...device.settings, batteryMonitoring: false }
+    await device.onSettings({
+      changedKeys: ['batteryMonitoring'],
+      newSettings: device.settings,
+    })
+    expect(device.hasCapability('measure_battery')).toBe(false)
+  })
+
+  it('uses the lowest valid percentage for incomparable capacities on every OS', async () => {
+    for (const os of ['linux', 'macos', 'windows']) {
+      const { device } = await laptop(os)
+      runtime.tcpOutcomes = ['connect']
+      runtime.sshScenarios = [
+        {
+          closeCode: 0,
+          stdoutChunks: ['40|4|10|energy\n25|1|4|charge\n101|||\nNaN|||'],
+        },
+      ]
+      await device.onInit()
+      expect(device.getCapabilityValue('measure_battery')).toBe(25)
+    }
+  })
+
+  it('implements strict independent threshold entries and rejects unknown conditions', async () => {
+    const { device, driver } = await laptop()
+    for (const direction of ['below', 'above']) {
+      const trigger = driver.triggerCards.get(
+        `computer_battery_${direction}`
+      )?.runListener
+      const threshold = direction === 'below' ? 30 : 80
+      const inside = direction === 'below' ? 29 : 81
+      expect(
+        await trigger?.({ threshold }, { value: threshold, previous: null })
+      ).toBe(false)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: threshold })
+      ).toBe(true)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: inside })
+      ).toBe(false)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: null })
+      ).toBe(true)
+      expect(
+        await trigger?.(
+          { threshold: direction === 'below' ? 20 : 90 },
+          { value: inside, previous: null }
+        )
+      ).toBe(false)
+      const condition = driver.conditionCards.get(
+        `computer_battery_${direction}`
+      )?.runListener
+      await expect(condition?.({ device, threshold })).rejects.toThrow(
+        'unknown'
+      )
+    }
+  })
+})
+
+it('clears invalid battery output and restores fresh conditions after recovery', async () => {
+  const device = createDevice({
+    batteryMonitoring: true,
+    ipAddress: '192.168.1.20',
+    sshUsername: 'admin',
+    sshPassword: 'secret',
+  })
+  const driver = new ComputerDriver() as unknown as FakeDriver & {
+    onInit(): Promise<void>
+  }
+  await driver.onInit()
+  Object.assign(device.homey, { flow: driver.homey.flow })
+  runtime.tcpOutcomes = ['connect', 'connect', 'connect', 'connect']
+  runtime.sshScenarios = [
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+    { closeCode: 0, stdoutChunks: ['Infinity|||\n-1|||\n101|||\n|||'] },
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+  ]
+  await device.onInit()
+  const condition = driver.conditionCards.get(
+    'computer_battery_below'
+  )?.runListener
+  expect(await condition?.({ device, threshold: 30 })).toBe(true)
+  expect(await condition?.({ device, threshold: 25 })).toBe(false)
+  await runScheduledPoll(device)
+  expect(device.getCapabilityValue('measure_battery')).toBeNull()
+  await expect(condition?.({ device, threshold: 30 })).rejects.toThrow(
+    'unknown'
+  )
+  await runScheduledPoll(device)
+  expect(await condition?.({ device, threshold: 30 })).toBe(true)
+  await runScheduledPoll(device)
+  expect(device.getCapabilityValue('measure_battery')).toBe(25)
 })

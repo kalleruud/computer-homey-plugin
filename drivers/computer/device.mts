@@ -1,4 +1,5 @@
 import Homey from 'homey'
+import { resetBattery } from '../../src/computer/battery.js'
 import { startPolling, stopPolling } from '../../src/computer/connected.js'
 import { shutdownComputerOverSsh as shutdownComputer } from '../../src/computer/poweroff.js'
 import { powerOnOverSsh } from '../../src/computer/poweron-ssh.js'
@@ -15,6 +16,7 @@ export default class ComputerDevice extends Homey.Device {
   override async onInit() {
     this.log('Computer device has been initialized')
     await ensureCapabilities(this)
+    await resetBattery(this)
 
     this.registerCapabilityListener(
       'poweron' satisfies Capability,
@@ -39,7 +41,9 @@ export default class ComputerDevice extends Homey.Device {
 
   override async onSettings(event: DeviceSettingsEvent) {
     this.log('Computer settings changed', event.changedKeys)
-    await startPolling(this)
+    await ensureCapabilities(this, event.newSettings)
+    await resetBattery(this)
+    await startPolling(this, event.newSettings)
   }
 
   override onRenamed(name: string) {
