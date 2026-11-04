@@ -17,6 +17,7 @@
     "sshKeyTimeout": "SSH command timed out; check the command and passwordless sudo permissions."
   },
   "warnings": {
-    "sshUnavailable": "Computer is reachable, but SSH is unavailable."
+    "sshUnavailable": "Computer is reachable, but SSH is unavailable.",
+    "icmpUnavailable": "ICMP monitoring is unavailable. Check the ping environment and permissions; the last known state is retained."
   }
 }

@@ -13,7 +13,7 @@ import {
 import { getUptimeMinutes } from './uptime.js'
 
 type ComputerConnectionState = {
-  isOnline: boolean
+  isOnline?: boolean
   warning?: string
 }
 
@@ -54,7 +54,7 @@ export async function startPolling(
 async function pollComputerConnectionState(
   device: Homey.Device,
   settings: ComputerDriverSettings,
-  onMissingPingCommand: () => void
+  onMissingPingCommand: (error: Error) => void
 ): Promise<ComputerConnectionState> {
   const validationError = getProbeValidationError(settings)
   if (validationError) {
@@ -69,15 +69,17 @@ async function pollComputerConnectionState(
   }
 
   const [sshResults, pingResults] = await Promise.all([
-    Promise.all(
-      settings.ipAddresses.map(async ipAddress => {
-        debugLog(
-          device,
-          `Monitor: ssh probe ${ipAddress}:${settings.sshPort.toString()}`
-        )
-        return probeTcpPort(ipAddress, settings.sshPort)
-      })
-    ),
+    settings.monitoringMethod === 'icmp'
+      ? Promise.resolve([])
+      : Promise.all(
+          settings.ipAddresses.map(async ipAddress => {
+            debugLog(
+              device,
+              `Monitor: ssh probe ${ipAddress}:${settings.sshPort.toString()}`
+            )
+            return probeTcpPort(ipAddress, settings.sshPort)
+          })
+        ),
     Promise.all(
       settings.ipAddresses.map(async ipAddress => {
         debugLog(device, `Monitor: ping probe ${ipAddress}`)
@@ -86,7 +88,7 @@ async function pollComputerConnectionState(
     ),
   ])
 
-  const formatProbeRow = (ips: string[], results: boolean[]) =>
+  const formatProbeRow = (ips: string[], results: Array<boolean | undefined>) =>
     ips
       .map((ip, index) => `${ip}:${results[index] === true ? 'ok' : 'no'}`)
       .join(', ')
@@ -105,14 +107,22 @@ async function pollComputerConnectionState(
   }
 
   if (pingResults.includes(true)) {
+    const warning =
+      settings.monitoringMethod === 'icmp'
+        ? undefined
+        : SSH_UNAVAILABLE_WARNING_KEY
     debugLog(
       device,
-      `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=true warning=ssh_unavailable`
+      `Monitor: batch results ssh=[${sshRow}] ping=[${pingRow}] online=true warning=${warning ?? 'none'}`
     )
     return {
       isOnline: true,
-      warning: SSH_UNAVAILABLE_WARNING_KEY,
+      warning,
     }
+  }
+
+  if (settings.monitoringMethod === 'icmp' && pingResults.includes(undefined)) {
+    return { warning: 'warnings.icmpUnavailable' }
   }
 
   debugLog(
@@ -146,13 +156,13 @@ async function refreshComputerState(
     const connectionState = await pollComputerConnectionState(
       device,
       settings,
-      () => {
+      error => {
         if (state.pingCommandMissingLogged) {
           return
         }
 
         state.pingCommandMissingLogged = true
-        device.error('Ping command is not available for fallback status checks')
+        device.error('Ping is unavailable for computer monitoring', error)
       }
     )
 
@@ -179,6 +189,10 @@ async function applyConnectionState(
     await device.setWarning(device.homey.__(warning))
   } else {
     await device.unsetWarning()
+  }
+
+  if (isOnline === undefined) {
+    return previousConnected === true
   }
 
   const uptimeMinutes = getUptimeMinutes(device, isOnline)
@@ -247,20 +261,42 @@ async function probeTcpPort(host: string, port: number): Promise<boolean> {
 
 async function probePing(
   host: string,
-  onMissingPingCommand: () => void
-): Promise<boolean> {
+  onMissingPingCommand: (error: Error) => void
+): Promise<boolean | undefined> {
   return new Promise(resolve => {
-    execFile('ping', ['-c', '1', '-W', '1', host], error => {
+    execFile('ping', ['-c', '1', '-W', '1', host], (error, _stdout, stderr) => {
       if (!error) {
         resolve(true)
         return
       }
 
-      if ('code' in error && error.code === 'ENOENT') {
-        onMissingPingCommand()
+      if (
+        ('code' in error &&
+          ['ENOENT', 'EACCES', 'EPERM', 'ENOSYS', 'ENOTSUP'].includes(
+            String(error.code)
+          )) ||
+        /operation not permitted|permission denied|not supported|protocol not available/i.test(
+          stderr || error.message
+        )
+      ) {
+        void probeNativePing(host, onMissingPingCommand).then(resolve)
+        return
       }
 
       resolve(false)
     })
   })
+}
+
+async function probeNativePing(
+  host: string,
+  onUnavailable: (error: Error) => void
+): Promise<boolean | undefined> {
+  try {
+    const { ping } = await import('@homebridge/node-icmp-ping')
+    return (await ping(host)).success
+  } catch (error) {
+    onUnavailable(error instanceof Error ? error : new Error(String(error)))
+    return undefined
+  }
 }

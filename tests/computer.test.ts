@@ -88,6 +88,8 @@ type RuntimeState = {
     args: string[]
     file: string
   }>
+  nativePingCalls: string[]
+  nativePingOutcomes: Array<boolean | Error>
   pingOutcomes: Array<PingError | null>
   sentPackets: RecordedPacket[]
   setTimeoutValues: number[]
@@ -113,6 +115,8 @@ const runtime: RuntimeState = {
   destroyedSockets: 0,
   ipChecks: [],
   pingCalls: [],
+  nativePingCalls: [],
+  nativePingOutcomes: [],
   pingOutcomes: [],
   sentPackets: [],
   setTimeoutValues: [],
@@ -134,6 +138,8 @@ function resetRuntime() {
   runtime.dgramSendError = undefined
   runtime.ipChecks = []
   runtime.pingCalls = []
+  runtime.nativePingCalls = []
+  runtime.nativePingOutcomes = []
   runtime.pingOutcomes = []
   runtime.sentPackets = []
   runtime.setTimeoutValues = []
@@ -582,6 +588,16 @@ mock.module('homey', () => ({
 
 mock.module('node:crypto', () => ({
   randomUUID: () => runtime.defaultUuid,
+}))
+
+mock.module('@homebridge/node-icmp-ping', () => ({
+  ping: async (host: string) => {
+    runtime.nativePingCalls.push(host)
+    const outcome =
+      runtime.nativePingOutcomes.shift() ?? new Error('ICMP unavailable')
+    if (outcome instanceof Error) throw outcome
+    return { success: outcome, latency: outcome ? 3 : null, message: '' }
+  },
 }))
 
 mock.module('node:child_process', () => ({
@@ -1103,8 +1119,7 @@ describe('ComputerDevice', () => {
     await runScheduledPoll(device)
 
     const pingMissingErrors = device.errorCalls.filter(
-      ([message]) =>
-        message === 'Ping command is not available for fallback status checks'
+      ([message]) => message === 'Ping is unavailable for computer monitoring'
     )
 
     expect(runtime.pingCalls).toEqual([
@@ -1544,6 +1559,126 @@ describe('ComputerDevice', () => {
       { args: ['-c', '1', '-W', '1', '192.168.1.20'], file: 'ping' },
       { args: ['-c', '1', '-W', '1', '192.168.1.21'], file: 'ping' },
     ])
+  })
+
+  it('monitors ICMP without SSH settings and transitions once per observed change', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: '192.168.1.20,192.168.1.21',
+      sshPort: 70000,
+    })
+    runtime.pingOutcomes = [new Error('timeout'), null]
+    await device.onInit()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
+    expect(runtime.tcpCalls).toHaveLength(0)
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    for (let i = 0; i < 2; i++) {
+      runtime.pingOutcomes = [new Error('timeout'), new Error('timeout')]
+      await runScheduledPoll(device)
+    }
+    expect(device.getCapabilityValue('connected')).toBe(false)
+    expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    await runScheduledPoll(device)
+    expect(device.driver.turnedOnTriggerCalls).toEqual([device])
+    await expect(device.shutdownComputer()).rejects.toThrow('SSH port')
+    device.settings.startupMode = 'ssh'
+    await expect(device.startComputer()).rejects.toThrow('SSH port')
+    device.settings.sshPort = 22
+    await expect(device.shutdownComputer()).rejects.toThrow('SSH username')
+    await expect(device.startComputer()).rejects.toThrow('SSH username')
+  })
+
+  for (const code of ['ENOENT', 'EACCES', 'EPERM', 'ENOTSUP']) {
+    it(`retains state and recovers from unavailable ICMP (${code})`, async () => {
+      const device = createDevice({
+        monitoringMethod: 'icmp',
+        ipAddress: '192.168.1.20',
+      })
+      const unavailable = Object.assign(new Error('ping unavailable'), { code })
+      runtime.pingOutcomes = [
+        unavailable,
+        unavailable,
+        null,
+        unavailable,
+        new Error('timeout'),
+      ]
+      await device.onInit()
+      expect(device.capabilitySetCalls).toHaveLength(0)
+      expect(device.warning).toBe('warnings.icmpUnavailable')
+      await runScheduledPoll(device)
+      expect(device.errorCalls).toHaveLength(1)
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(true)
+      expect(device.warning).toBeUndefined()
+      expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+      const uptime = device.getCapabilityValue('uptime')
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(true)
+      expect(device.getCapabilityValue('uptime')).toBe(uptime)
+      expect(device.driver.turnedOffTriggerCalls).toHaveLength(0)
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(false)
+      expect(device.warning).toBeUndefined()
+      expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    })
+  }
+
+  it('validates ICMP addresses independently and recognizes unsupported ping', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: 'invalid',
+      sshPort: 70000,
+    })
+    await device.onInit()
+    expect(device.warning).toBe('Computer IP must be a valid IPv4 address.')
+    expect(runtime.pingCalls).toHaveLength(0)
+    device.settings.ipAddress = '192.168.1.20'
+    runtime.pingOutcomes = [new Error('ping: protocol not supported')]
+    await device.onSettings({ changedKeys: ['ipAddress'] })
+    expect(device.warning).toBe('warnings.icmpUnavailable')
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    expect(runtime.tcpCalls).toHaveLength(0)
+  })
+
+  it('uses native ICMP when the system ping executable is missing', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: '10.0.1.229',
+    })
+    const missing = Object.assign(new Error('spawn ping ENOENT'), {
+      code: 'ENOENT',
+    })
+    runtime.pingOutcomes = [missing, missing, missing]
+    runtime.nativePingOutcomes = [true, false, true]
+    await device.onInit()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('connected')).toBe(false)
+    expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.driver.turnedOnTriggerCalls).toEqual([device])
+    expect(runtime.nativePingCalls).toEqual([
+      '10.0.1.229',
+      '10.0.1.229',
+      '10.0.1.229',
+    ])
+    expect(runtime.tcpCalls).toHaveLength(0)
+    expect(device.errorCalls).toHaveLength(0)
+  })
+
+  it('keeps successful SSH observations when ping is unavailable', async () => {
+    const device = createDevice({ ipAddress: '192.168.1.20' })
+    runtime.pingOutcomes = [
+      Object.assign(new Error('missing'), { code: 'ENOENT' }),
+    ]
+    await device.onInit()
+    expect(runtime.tcpCalls).toHaveLength(1)
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
   })
 
   it('logs lifecycle events and stops polling when the device is removed', async () => {
