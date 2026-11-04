@@ -4,6 +4,7 @@ import net from 'node:net'
 import { POLL_TIMEOUT_MS, SSH_UNAVAILABLE_WARNING_KEY } from '../constants.js'
 import { debugLog, getDeviceState } from '../lib.js'
 import { ComputerDriverSettings } from '../types.js'
+import { pollBattery } from './battery.js'
 import {
   getComputerSettings,
   getPollIntervalMs,
@@ -30,21 +31,24 @@ export function stopPolling(device: Homey.Device) {
   }
 }
 
-export async function startPolling(device: Homey.Device) {
+export async function startPolling(
+  device: Homey.Device,
+  rawSettings = device.getSettings()
+) {
   stopPolling(device)
 
   const state = getDeviceState(device)
-  const settings = getComputerSettings(device.getSettings())
+  const settings = getComputerSettings(rawSettings)
   const intervalMs = getPollIntervalMs(settings)
 
   debugLog(device, `Starting computer status polling every ${intervalMs} ms`)
 
   state.pollIntervalTimer = device.homey.setInterval(() => {
-    void refreshComputerState(device)
+    void refreshComputerState(device, settings)
   }, intervalMs)
 
   debugLog(device, 'Running initial poll immediately after startup')
-  await refreshComputerState(device)
+  await refreshComputerState(device, settings)
 }
 
 async function pollComputerConnectionState(
@@ -131,7 +135,10 @@ async function pollComputerConnectionState(
   }
 }
 
-async function refreshComputerState(device: Homey.Device): Promise<boolean> {
+async function refreshComputerState(
+  device: Homey.Device,
+  settings: ComputerDriverSettings
+): Promise<boolean> {
   const state = getDeviceState(device)
   if (state.pollInFlight) {
     debugLog(device, 'Skipping poll because another poll is already running')
@@ -141,8 +148,6 @@ async function refreshComputerState(device: Homey.Device): Promise<boolean> {
   state.pollInFlight = true
 
   try {
-    const settings = getComputerSettings(device.getSettings())
-
     debugLog(
       device,
       `Polling computer status for ${settings.ipAddresses.join(', ') || '<missing ip>'} on SSH port ${settings.sshPort.toString()}`
@@ -161,7 +166,9 @@ async function refreshComputerState(device: Homey.Device): Promise<boolean> {
       }
     )
 
-    return await applyConnectionState(device, connectionState)
+    const online = await applyConnectionState(device, connectionState)
+    await pollBattery(device, settings, online)
+    return online
   } catch (error) {
     device.error('Failed to poll the computer status', error)
     return device.getCapabilityValue('connected') === true

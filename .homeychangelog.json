@@ -1,7 +1,7 @@
 {
   "1.0.3": {
-    "en": "Fixed mobile app and capability icons, updated the app icon color, and added SSH private-key authentication with command timeouts and optional ICMP-only monitoring with recovery warnings and accurate diagnostics.",
-    "no": "Rettet app- og kapabilitetsikoner, oppdaterte appikonfargen og la til SSH-nøkkelinnlogging med kommandotidsavbrudd og valgfri ICMP-overvåking med varsling ved overvåkingsfeil og presis diagnostikk."
+    "en": "Fixed mobile app and capability icons, updated the app icon color, and added SSH private-key authentication with command timeouts, optional laptop battery monitoring with threshold Flows and diagnostics, and optional ICMP-only monitoring with recovery warnings.",
+    "no": "Rettet app- og kapabilitetsikoner, oppdaterte appikonfargen og la til SSH-nøkkelinnlogging med kommandotidsavbrudd, valgfri batteriovervåking med terskelkort i Flow og diagnostikk, og valgfri ICMP-overvåking med varsling ved overvåkingsfeil."
   },
   "1.0.2": {
     "en": "Added Norwegian translations across the app and Flow cards; comma-separated IP and MAC lists so Wake-on-LAN targets every configured MAC, shutdown tries SSH on each listed IP until one succeeds, and the device shows online when any address responds; SSH startup mode alongside Wake-on-LAN with optional custom power-on and shutdown commands validated against a safety blocklist; a fix for crashes when SSH shutdown ended without an exit code; and device settings grouped into Computer and SSH sections.",

@@ -10,6 +10,7 @@ import { assertCustomSshCommandAllowed } from './command-safety.js'
 
 type RawComputerSettings = {
   monitoringMethod?: unknown
+  batteryMonitoring?: unknown
   ipAddress?: unknown
   macAddress?: unknown
   pollIntervalSeconds?: unknown
@@ -50,6 +51,7 @@ export function getComputerSettings(
   return {
     monitoringMethod:
       settings.monitoringMethod === 'icmp' ? 'icmp' : 'ssh-ping',
+    batteryMonitoring: settings.batteryMonitoring === true,
     ipAddresses: parseCommaSeparatedSegments(settings.ipAddress),
     macAddresses: parseCommaSeparatedSegments(settings.macAddress),
     pollIntervalSeconds: clampPollInterval(settings.pollIntervalSeconds),

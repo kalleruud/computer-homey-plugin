@@ -11,6 +11,7 @@ export type DeviceSettingsEvent = Parameters<
 
 export type ComputerDriverSettings = {
   monitoringMethod: 'ssh-ping' | 'icmp'
+  batteryMonitoring?: boolean
   ipAddresses: string[]
   macAddresses: string[]
   pollIntervalSeconds: number

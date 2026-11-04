@@ -69,6 +69,70 @@
         "id": "any_computer_turned_on"
       },
       {
+        "title": {
+          "en": "Battery above threshold",
+          "no": "Batteri over grense"
+        },
+        "titleFormatted": {
+          "en": "Battery above [[threshold]]%",
+          "no": "Batteri over [[threshold]]%"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=computer&capabilities=measure_battery"
+          },
+          {
+            "name": "threshold",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "placeholder": {
+              "en": "Percentage",
+              "no": "Prosent"
+            },
+            "title": {
+              "en": "Percentage",
+              "no": "Prosent"
+            }
+          }
+        ],
+        "id": "computer_battery_above"
+      },
+      {
+        "title": {
+          "en": "Battery below threshold",
+          "no": "Batteri under grense"
+        },
+        "titleFormatted": {
+          "en": "Battery below [[threshold]]%",
+          "no": "Batteri under [[threshold]]%"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=computer&capabilities=measure_battery"
+          },
+          {
+            "name": "threshold",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "placeholder": {
+              "en": "Percentage",
+              "no": "Prosent"
+            },
+            "title": {
+              "en": "Percentage",
+              "no": "Prosent"
+            }
+          }
+        ],
+        "id": "computer_battery_below"
+      },
+      {
         "id": "computer_turned_on",
         "title": {
           "en": "Turned on",
@@ -155,6 +219,70 @@
           "no": "Sjekker om en datamaskin er på."
         },
         "id": "any_computer_is_on"
+      },
+      {
+        "title": {
+          "en": "Battery above threshold",
+          "no": "Batteri over grense"
+        },
+        "titleFormatted": {
+          "en": "Battery above [[threshold]]%",
+          "no": "Batteri over [[threshold]]%"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=computer&capabilities=measure_battery"
+          },
+          {
+            "name": "threshold",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "placeholder": {
+              "en": "Percentage",
+              "no": "Prosent"
+            },
+            "title": {
+              "en": "Percentage",
+              "no": "Prosent"
+            }
+          }
+        ],
+        "id": "computer_battery_above"
+      },
+      {
+        "title": {
+          "en": "Battery below threshold",
+          "no": "Batteri under grense"
+        },
+        "titleFormatted": {
+          "en": "Battery below [[threshold]]%",
+          "no": "Batteri under [[threshold]]%"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=computer&capabilities=measure_battery"
+          },
+          {
+            "name": "threshold",
+            "type": "number",
+            "min": 0,
+            "max": 100,
+            "placeholder": {
+              "en": "Percentage",
+              "no": "Prosent"
+            },
+            "title": {
+              "en": "Percentage",
+              "no": "Prosent"
+            }
+          }
+        ],
+        "id": "computer_battery_below"
       },
       {
         "id": "computer_is_on",
@@ -388,6 +516,19 @@
                   }
                 }
               ]
+            },
+            {
+              "id": "batteryMonitoring",
+              "type": "checkbox",
+              "label": {
+                "en": "Monitor laptop battery",
+                "no": "Overvåk laptopbatteri"
+              },
+              "hint": {
+                "en": "Requires SSH access; disabling removes battery Flow cards.",
+                "no": "Krever SSH-tilgang; deaktivering fjerner batterikort i Flow."
+              },
+              "value": false
             }
           ]
         },
