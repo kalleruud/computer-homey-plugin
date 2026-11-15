@@ -15,7 +15,7 @@
     "en": "Wake, monitor, and power down your computer from Homey.",
     "no": "Start, overvåk og slå av datamaskinen din fra Homey."
   },
-  "brandColor": "#CE5939",
+  "brandColor": "#2E2E2E",
   "category": [
     "tools"
   ],
