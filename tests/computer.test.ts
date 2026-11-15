@@ -240,6 +240,7 @@ class FakeSshStream extends EventEmitter {
 
 class FakeSshClient extends EventEmitter {
   static latest: FakeSshClient
+  lastStream: FakeSshStream | undefined
   private scenario: SshScenario | undefined
 
   connect(config: SshConnectConfig) {
@@ -277,6 +278,7 @@ class FakeSshClient extends EventEmitter {
     }
 
     const stream = new FakeSshStream()
+    this.lastStream = stream
     callback(undefined, stream)
 
     queueMicrotask(() => {
@@ -1438,6 +1440,37 @@ describe('ComputerDevice', () => {
       '192.168.1.20',
       '192.168.1.21',
     ])
+  })
+
+  it('survives late ssh errors after a failed shutdown instead of crashing the app', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'wrong',
+      sshUsername: 'admin',
+      targetOs: 'windows',
+    })
+    const reset = Object.assign(new Error('read ECONNRESET'), {
+      code: 'ECONNRESET',
+    })
+
+    runtime.sshScenarios = [
+      {
+        connectError: Object.assign(
+          new Error('All configured authentication methods failed'),
+          { level: 'client-authentication' }
+        ),
+      },
+    ]
+    await expect(device.shutdownComputer()).rejects.toThrow()
+    // ssh2 re-emits 'error' when the server then resets the socket.
+    expect(() => FakeSshClient.latest.emit('error', reset)).not.toThrow()
+
+    runtime.sshScenarios = [{ streamError: new Error('stream') }]
+    await expect(device.shutdownComputer()).rejects.toThrow()
+    expect(() =>
+      FakeSshClient.latest.lastStream?.emit('error', reset)
+    ).not.toThrow()
+    expect(() => FakeSshClient.latest.emit('error', reset)).not.toThrow()
   })
 
   it('defaults unknown target operating systems to linux and windows avoids sudo', async () => {

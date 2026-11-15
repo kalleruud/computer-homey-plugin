@@ -110,7 +110,10 @@ export async function runSshCommandOnHost(
         timeoutMs ?? 30_000
       )
     }
-    client.once('error', () => {
+    // ssh2 can emit 'error' more than once (e.g. an auth failure followed by
+    // ECONNRESET when the server drops the socket). Keep the listener attached
+    // for the client's whole lifetime: an unhandled 'error' crashes the app.
+    client.on('error', () => {
       finish(
         new Error(keyMode ? 'errors.sshKeyFailed' : 'SSH connection failed')
       )
@@ -128,7 +131,7 @@ export async function runSshCommandOnHost(
           return
         }
 
-        stream.once('error', () =>
+        stream.on('error', () =>
           finish(
             new Error(
               keyMode ? 'errors.sshKeyCommandFailed' : 'SSH stream failed'
