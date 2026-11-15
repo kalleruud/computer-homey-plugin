@@ -40,9 +40,11 @@
     "xlarge": "/assets/images/power_button@1000px.jpg"
   },
   "support": "mailto:homey@kallerud.no",
+  "bugs": {
+    "url": "https://github.com/kalleruud/computer-homey-plugin/issues/new"
+  },
   "author": {
-    "email": "homey@kallerud.no",
-    "name": "Ole Kallerud"
+    "name": "Ole"
   },
   "flow": {
     "triggers": [
