@@ -9,6 +9,8 @@ import { ComputerDriverSettings, StartupMode, TargetOs } from '../types.js'
 import { assertCustomSshCommandAllowed } from './command-safety.js'
 
 type RawComputerSettings = {
+  monitoringMethod?: unknown
+  batteryMonitoring?: unknown
   ipAddress?: unknown
   macAddress?: unknown
   pollIntervalSeconds?: unknown
@@ -17,6 +19,8 @@ type RawComputerSettings = {
   customShutdownCommand?: unknown
   targetOs?: unknown
   sshUsername?: unknown
+  sshPrivateKey?: unknown
+  sshKeyPassphrase?: unknown
   sshPassword?: unknown
   sshPort?: unknown
 }
@@ -45,6 +49,9 @@ export function getComputerSettings(
   settings: RawComputerSettings
 ): ComputerDriverSettings {
   return {
+    monitoringMethod:
+      settings.monitoringMethod === 'icmp' ? 'icmp' : 'ssh-ping',
+    batteryMonitoring: settings.batteryMonitoring === true,
     ipAddresses: parseCommaSeparatedSegments(settings.ipAddress),
     macAddresses: parseCommaSeparatedSegments(settings.macAddress),
     pollIntervalSeconds: clampPollInterval(settings.pollIntervalSeconds),
@@ -54,6 +61,14 @@ export function getComputerSettings(
     targetOs: getTargetOs(settings.targetOs),
     sshUsername: getTrimmedString(settings.sshUsername),
     sshPassword: getTrimmedString(settings.sshPassword),
+    sshPrivateKey: getTrimmedString(settings.sshPrivateKey).replaceAll(
+      /\r\n?/g,
+      '\n'
+    ),
+    sshKeyPassphrase:
+      typeof settings.sshKeyPassphrase === 'string'
+        ? settings.sshKeyPassphrase
+        : '',
     sshPort: getPort(settings.sshPort),
   }
 }
@@ -73,14 +88,15 @@ export function getPollIntervalMs(settings: ComputerDriverSettings): number {
 }
 
 export function getProbeValidationError(
-  settings: ComputerDriverSettings
+  settings: ComputerDriverSettings,
+  validateSsh = settings.monitoringMethod !== 'icmp'
 ): ErrorKey | null {
   const ipValidationError = getIpAddressesValidationError(settings.ipAddresses)
   if (ipValidationError) {
     return ipValidationError
   }
 
-  if (!isValidPort(settings.sshPort)) {
+  if (validateSsh && !isValidPort(settings.sshPort)) {
     return ERROR_KEYS.sshPortInvalid
   }
 
@@ -125,7 +141,7 @@ export function assertCanShutdown(settings: ComputerDriverSettings) {
 }
 
 function assertSshCredentials(settings: ComputerDriverSettings) {
-  const validationError = getProbeValidationError(settings)
+  const validationError = getProbeValidationError(settings, true)
   if (validationError) {
     throw new Error(validationError)
   }
@@ -134,7 +150,7 @@ function assertSshCredentials(settings: ComputerDriverSettings) {
     throw new Error(ERROR_KEYS.sshUsernameRequired)
   }
 
-  if (settings.sshPassword.length === 0) {
+  if (!settings.sshPrivateKey && settings.sshPassword.length === 0) {
     throw new Error(ERROR_KEYS.sshPasswordRequired)
   }
 }

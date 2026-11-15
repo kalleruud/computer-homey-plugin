@@ -10,6 +10,8 @@ export type DeviceSettingsEvent = Parameters<
 >[0]
 
 export type ComputerDriverSettings = {
+  monitoringMethod: 'ssh-ping' | 'icmp'
+  batteryMonitoring?: boolean
   ipAddresses: string[]
   macAddresses: string[]
   pollIntervalSeconds: number
@@ -18,6 +20,8 @@ export type ComputerDriverSettings = {
   customShutdownCommand: string
   targetOs: TargetOs
   sshUsername: string
+  sshPrivateKey: string
+  sshKeyPassphrase: string
   sshPassword: string
   sshPort: number
 }

@@ -35,6 +35,35 @@
         "highlight": true
       },
       {
+        "id": "monitoringMethod",
+        "type": "dropdown",
+        "label": {
+          "en": "Monitoring method",
+          "no": "Overvåkingsmetode"
+        },
+        "hint": {
+          "en": "SSH + ping checks SSH availability and reachability; ICMP only uses ping without checking SSH or requiring credentials. ICMP requires a working ping environment and replies from the target; blocked ICMP can make a running computer appear offline.",
+          "no": "SSH + ping sjekker SSH og tilgjengelighet; kun ICMP bruker ping uten å sjekke SSH eller kreve innlogging. ICMP krever et fungerende ping-miljø og svar fra målet; blokkert ICMP kan vise en påslått datamaskin som frakoblet."
+        },
+        "value": "ssh-ping",
+        "values": [
+          {
+            "id": "ssh-ping",
+            "label": {
+              "en": "SSH + ping (default)",
+              "no": "SSH + ping (standard)"
+            }
+          },
+          {
+            "id": "icmp",
+            "label": {
+              "en": "ICMP only",
+              "no": "Kun ICMP"
+            }
+          }
+        ]
+      },
+      {
         "id": "pollIntervalSeconds",
         "type": "number",
         "label": {
@@ -79,6 +108,19 @@
             }
           }
         ]
+      },
+      {
+        "id": "batteryMonitoring",
+        "type": "checkbox",
+        "label": {
+          "en": "Monitor laptop battery",
+          "no": "Overvåk laptopbatteri"
+        },
+        "hint": {
+          "en": "Requires SSH access; disabling removes battery Flow cards.",
+          "no": "Krever SSH-tilgang; deaktivering fjerner batterikort i Flow."
+        },
+        "value": false
       }
     ]
   },
@@ -142,8 +184,34 @@
           "no": "SSH-passord"
         },
         "hint": {
-          "en": "Required for remote shutdown and for SSH power-on.",
-          "no": "Påkrevd for fjernavslåing og SSH-oppstart."
+          "en": "Required only when no SSH private key is configured.",
+          "no": "Påkrevd bare når ingen privat SSH-nøkkel er angitt."
+        },
+        "value": ""
+      },
+      {
+        "id": "sshPrivateKey",
+        "type": "textarea",
+        "label": {
+          "en": "SSH private key",
+          "no": "Privat SSH-nøkkel"
+        },
+        "hint": {
+          "en": "Paste the complete OpenSSH Ed25519/RSA or PEM RSA key. Visible and saved on Homey; clear to use password login.",
+          "no": "Lim inn hele OpenSSH Ed25519/RSA- eller PEM RSA-nøkkelen. Synlig og lagret på Homey; tøm for passordinnlogging."
+        },
+        "value": ""
+      },
+      {
+        "id": "sshKeyPassphrase",
+        "type": "password",
+        "label": {
+          "en": "Private key passphrase",
+          "no": "Passfrase for privat nøkkel"
+        },
+        "hint": {
+          "en": "Optional, saved for encrypted keys. Whitespace is significant. Key mode requires passwordless sudo when sudo is used.",
+          "no": "Valgfritt, lagres for krypterte nøkler. Mellomrom bevares. Nøkkelmodus krever passordfri sudo når sudo brukes."
         },
         "value": ""
       },

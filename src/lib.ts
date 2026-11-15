@@ -1,6 +1,6 @@
 import type Homey from 'homey'
+import { getComputerSettings } from './computer/settings.js'
 import { IS_DEBUG, REQUIRED_CAPABILITIES } from './constants.js'
-import type { Capability } from './types.js'
 
 type ComputerDeviceState = {
   pollInFlight: boolean
@@ -30,15 +30,21 @@ export function getDeviceState(device: Homey.Device): ComputerDeviceState {
   return nextState
 }
 
-export async function ensureCapabilities(device: Homey.Device) {
-  for (const capability of REQUIRED_CAPABILITIES) {
+export async function ensureCapabilities(
+  device: Homey.Device,
+  settings = device.getSettings()
+) {
+  const capabilities: string[] = [...REQUIRED_CAPABILITIES]
+  if (getComputerSettings(settings).batteryMonitoring)
+    capabilities.push('measure_battery')
+  for (const capability of capabilities) {
     if (!device.hasCapability(capability)) {
       await device.addCapability(capability)
     }
   }
 
-  for (const capability of device.getCapabilities() as Capability[]) {
-    if (!REQUIRED_CAPABILITIES.includes(capability)) {
+  for (const capability of device.getCapabilities()) {
+    if (!capabilities.includes(capability)) {
       await device.removeCapability(capability)
       device.log(`Removed unused capability: ${capability}`)
     }

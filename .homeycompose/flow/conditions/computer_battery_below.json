@@ -1,0 +1,31 @@
+{
+  "title": {
+    "en": "Battery below threshold",
+    "no": "Batteri under grense"
+  },
+  "titleFormatted": {
+    "en": "Battery below [[threshold]]%",
+    "no": "Batteri under [[threshold]]%"
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=computer&capabilities=measure_battery"
+    },
+    {
+      "name": "threshold",
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "placeholder": {
+        "en": "Percentage",
+        "no": "Prosent"
+      },
+      "title": {
+        "en": "Percentage",
+        "no": "Prosent"
+      }
+    }
+  ]
+}

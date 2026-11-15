@@ -1,5 +1,11 @@
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
+import { generateKeyPairSync } from 'node:crypto'
 import { EventEmitter } from 'node:events'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import type { PublicKeyAuthMethod } from 'ssh2'
+import { utils as sshUtils } from 'ssh2'
 
 process.env.DEBUG = '1'
 
@@ -10,6 +16,9 @@ type PingError = Error & {
 }
 
 type SshScenario = {
+  keepOpen?: boolean
+  execute?: (command: string) => string
+  hang?: boolean
   closeCode?: number | null | undefined
   connectError?: Error
   execError?: Error
@@ -34,7 +43,10 @@ type SshConnectConfig = {
   host: string
   keepaliveCountMax: number
   keepaliveInterval: number
-  password: string
+  password?: string
+  privateKey?: string
+  passphrase?: string
+  authHandler?: PublicKeyAuthMethod[]
   port: number
   readyTimeout: number
   username: string
@@ -59,7 +71,7 @@ type FakeActionOrConditionCard = {
   runListener?: FakeFlowRunListener
 }
 
-type FakeTriggerCard = {
+type FakeTriggerCard = FakeActionOrConditionCard & {
   calls: Array<{ device: unknown; tokens?: object }>
   trigger: (device: unknown, tokens?: object) => Promise<void>
 }
@@ -76,6 +88,8 @@ type RuntimeState = {
     args: string[]
     file: string
   }>
+  nativePingCalls: string[]
+  nativePingOutcomes: Array<boolean | Error>
   pingOutcomes: Array<PingError | null>
   sentPackets: RecordedPacket[]
   setTimeoutValues: number[]
@@ -91,6 +105,8 @@ type RuntimeState = {
   tcpOutcomes: TcpOutcome[]
 }
 
+const sshTimers = new Map<symbol, { callback: () => void; ms: number }>()
+
 const runtime: RuntimeState = {
   bindCount: 0,
   boundSockets: 0,
@@ -99,6 +115,8 @@ const runtime: RuntimeState = {
   destroyedSockets: 0,
   ipChecks: [],
   pingCalls: [],
+  nativePingCalls: [],
+  nativePingOutcomes: [],
   pingOutcomes: [],
   sentPackets: [],
   setTimeoutValues: [],
@@ -120,6 +138,8 @@ function resetRuntime() {
   runtime.dgramSendError = undefined
   runtime.ipChecks = []
   runtime.pingCalls = []
+  runtime.nativePingCalls = []
+  runtime.nativePingOutcomes = []
   runtime.pingOutcomes = []
   runtime.sentPackets = []
   runtime.setTimeoutValues = []
@@ -210,6 +230,7 @@ class FakeDgramSocket extends EventEmitter {
 }
 
 class FakeSshStream extends EventEmitter {
+  end() {}
   stderr = new EventEmitter()
 
   write(data: string) {
@@ -218,13 +239,16 @@ class FakeSshStream extends EventEmitter {
 }
 
 class FakeSshClient extends EventEmitter {
+  static latest: FakeSshClient
   private scenario: SshScenario | undefined
 
   connect(config: SshConnectConfig) {
+    FakeSshClient.latest = this
     runtime.sshConnectConfigs.push(config)
     this.scenario = runtime.sshScenarios.shift() ?? { closeCode: 0 }
 
     queueMicrotask(() => {
+      if (this.scenario?.hang) return
       if (this.scenario?.connectError) {
         this.emit('error', this.scenario.connectError)
         return
@@ -261,7 +285,9 @@ class FakeSshClient extends EventEmitter {
         return
       }
 
-      for (const chunk of this.scenario?.stdoutChunks ?? []) {
+      for (const chunk of this.scenario?.execute
+        ? [this.scenario.execute(command)]
+        : (this.scenario?.stdoutChunks ?? [])) {
         stream.emit('data', Buffer.from(chunk))
       }
 
@@ -269,6 +295,7 @@ class FakeSshClient extends EventEmitter {
         stream.stderr.emit('data', Buffer.from(chunk))
       }
 
+      if (this.scenario?.keepOpen) return
       const scenario = this.scenario
       const closeCode =
         scenario === undefined
@@ -398,6 +425,10 @@ class FakeDriver {
 
   private createTriggerCard() {
     const card: FakeTriggerCard = {
+      registerRunListener: listener => {
+        card.runListener = listener
+        return card
+      },
       calls: [],
       trigger: async (device, tokens) => {
         card.calls.push({ device, tokens })
@@ -477,9 +508,9 @@ class FakeDevice {
   capabilityListeners = new Map<string, () => Promise<void> | void>()
   capabilitySetCalls: Array<{
     capability: string
-    value: number | boolean
+    value: number | boolean | null
   }> = []
-  capabilityValues = new Map<string, number | boolean>()
+  capabilityValues = new Map<string, number | boolean | null>()
   errorCalls: unknown[][] = []
   homey = createHomeyRuntime()
   logs: unknown[][] = []
@@ -531,7 +562,7 @@ class FakeDevice {
     )
   }
 
-  async setCapabilityValue(capability: string, value: number | boolean) {
+  async setCapabilityValue(capability: string, value: number | boolean | null) {
     this.capabilitySetCalls.push({ capability, value })
     this.capabilityValues.set(capability, value)
   }
@@ -557,6 +588,16 @@ mock.module('homey', () => ({
 
 mock.module('node:crypto', () => ({
   randomUUID: () => runtime.defaultUuid,
+}))
+
+mock.module('@homebridge/node-icmp-ping', () => ({
+  ping: async (host: string) => {
+    runtime.nativePingCalls.push(host)
+    const outcome =
+      runtime.nativePingOutcomes.shift() ?? new Error('ICMP unavailable')
+    if (outcome instanceof Error) throw outcome
+    return { success: outcome, latency: outcome ? 3 : null, message: '' }
+  },
 }))
 
 mock.module('node:child_process', () => ({
@@ -588,8 +629,22 @@ mock.module('node:net', () => ({
   isIP: isIPv4,
 }))
 
+mock.module('node:timers', () => ({
+  default: {
+    setTimeout(callback: () => void, ms: number) {
+      const handle = Symbol('ssh timeout')
+      sshTimers.set(handle, { callback, ms })
+      return handle
+    },
+    clearTimeout(handle: symbol) {
+      sshTimers.delete(handle)
+    },
+  },
+}))
+
 mock.module('ssh2', () => ({
   Client: FakeSshClient,
+  utils: sshUtils,
 }))
 
 const { default: ComputerDevice } =
@@ -776,6 +831,180 @@ describe('ComputerDriver', () => {
 })
 
 describe('ComputerDevice', () => {
+  it('decrypts a key once per multi-address operation and shares the parsed key', async () => {
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    const parse = spyOn(sshUtils, 'parseKey')
+    try {
+      const device = createDevice({
+        ipAddress: '192.168.1.20,192.168.1.21',
+        sshUsername: 'admin',
+        sshPrivateKey: privateKey,
+        startupMode: 'ssh',
+      })
+      await device.shutdownComputer()
+      expect(parse).toHaveBeenCalledTimes(1)
+      expect(runtime.sshConnectConfigs[0]?.authHandler?.[0]?.key).toBe(
+        runtime.sshConnectConfigs[1]?.authHandler?.[0]?.key
+      )
+      await device.startComputer()
+      expect(parse).toHaveBeenCalledTimes(2)
+    } finally {
+      parse.mockRestore()
+    }
+  })
+
+  it('times out key commands, clears the timer and ignores late readiness', async () => {
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPrivateKey: privateKey,
+    })
+    runtime.sshScenarios = [{ hang: true }]
+    const pending = device.shutdownComputer()
+    const timeout = [...sshTimers.values()][0]
+    expect(timeout?.ms).toBe(30_000)
+    timeout?.callback()
+    await expect(pending).rejects.toThrow('errors.sshKeyTimeout')
+    expect(sshTimers.size).toBe(0)
+    expect(runtime.sshEndCount).toBe(1)
+    FakeSshClient.latest.emit('ready')
+    timeout?.callback()
+    expect(runtime.sshEndCount).toBe(1)
+    expect(runtime.sshExecCalls).toEqual([])
+  })
+
+  it('clears key command timers on success and connection, execution and stream errors', async () => {
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPrivateKey: privateKey,
+    })
+    await device.shutdownComputer()
+    expect(sshTimers.size).toBe(0)
+    for (const scenario of [
+      { connectError: new Error('connection') },
+      { execError: new Error('execution') },
+      { streamError: new Error('stream') },
+    ]) {
+      runtime.sshScenarios = [scenario]
+      await expect(device.shutdownComputer()).rejects.toThrow()
+      expect(sshTimers.size).toBe(0)
+    }
+    expect(runtime.sshEndCount).toBe(4)
+  })
+
+  for (const type of ['ed25519', 'rsa', 'pem'] as const) {
+    for (const encrypted of [false, true]) {
+      it(`uses ${encrypted ? 'encrypted' : 'plain'} ${type} keys for shutdown and startup without passwords`, async () => {
+        const passphrase = encrypted ? '  exact passphrase  ' : ''
+        const privateKey =
+          type === 'pem'
+            ? generateKeyPairSync('rsa', {
+                modulusLength: 2048,
+                publicKeyEncoding: { type: 'spki', format: 'pem' },
+                privateKeyEncoding: {
+                  type: 'pkcs1',
+                  format: 'pem',
+                  ...(encrypted ? { cipher: 'aes-256-cbc', passphrase } : {}),
+                },
+              }).privateKey
+            : sshUtils.generateKeyPairSync(type, {
+                bits: 2048,
+                ...(encrypted ? { cipher: 'aes256-cbc', passphrase } : {}),
+              }).private
+        const device = createDevice({
+          ipAddress: '192.168.1.20',
+          sshUsername: 'admin',
+          sshPrivateKey: privateKey.replaceAll('\n', '\r\n'),
+          sshKeyPassphrase: passphrase,
+          startupMode: 'ssh',
+          sshPassword: 'unused secret',
+        })
+        await device.shutdownComputer()
+        await device.startComputer()
+        expect(runtime.sshConnectConfigs).toHaveLength(2)
+        for (const config of runtime.sshConnectConfigs) {
+          const [auth] = config.authHandler ?? []
+          expect(auth?.type).toBe('publickey')
+          expect(auth?.username).toBe('admin')
+          expect(auth?.key).toHaveProperty('isPrivateKey')
+          expect(config).not.toHaveProperty('privateKey')
+          expect(config).not.toHaveProperty('passphrase')
+          expect(config).not.toHaveProperty('password')
+        }
+        expect(runtime.sshWrites).toEqual([])
+        expect(runtime.sshExecCalls[0]).toEqual({
+          command: 'sudo -n shutdown -h now',
+          options: { pty: false },
+        })
+        if (encrypted) {
+          device.settings.sshKeyPassphrase = 'wrong'
+          await expect(device.shutdownComputer()).rejects.toThrow(
+            'errors.sshKeyInvalid'
+          )
+          device.settings.sshKeyPassphrase = ''
+          await expect(device.shutdownComputer()).rejects.toThrow(
+            'errors.sshKeyInvalid'
+          )
+        }
+        device.settings.sshPrivateKey = ''
+        await device.shutdownComputer()
+        expect(runtime.sshConnectConfigs.at(-1)?.password).toBe('unused secret')
+      }, 20_000)
+    }
+  }
+
+  it('rejects malformed keys without opening a connection or leaking secrets', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPrivateKey: 'secret invalid key',
+      sshPassword: 'secret password',
+    })
+    await expect(device.shutdownComputer()).rejects.toThrow(
+      'errors.sshKeyInvalid'
+    )
+    expect(runtime.sshConnectConfigs).toEqual([])
+    expect(device.errorCalls).toEqual([])
+  })
+
+  it('fails key authentication and sudo without submitting credentials or logging server text', async () => {
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPrivateKey: privateKey,
+      sshPassword: 'secret password',
+    })
+    runtime.sshScenarios = [{ connectError: new Error('secret password') }]
+    await expect(device.shutdownComputer()).rejects.toThrow(
+      'errors.sshKeyFailed'
+    )
+    runtime.sshScenarios = [{ stderrChunks: ['[sudo] pass', 'word:'] }]
+    await expect(device.shutdownComputer()).rejects.toThrow(
+      'errors.sshKeyCommandFailed'
+    )
+    runtime.sshScenarios = [{ closeCode: 1, stderrChunks: [privateKey] }]
+    await expect(device.shutdownComputer()).rejects.toThrow(
+      'errors.sshKeyCommandFailed'
+    )
+    for (const scenario of [
+      { execError: new Error(privateKey) },
+      { streamError: new Error(privateKey) },
+      { stdoutChunks: ['[sudo] password:'] },
+    ]) {
+      runtime.sshScenarios = [scenario]
+      await expect(device.shutdownComputer()).rejects.toThrow(
+        'errors.sshKeyCommandFailed'
+      )
+    }
+    expect(runtime.sshWrites).toEqual([])
+    expect(device.errorCalls).toEqual([])
+    expect(runtime.sshConnectConfigs.every(c => !c.password)).toBe(true)
+  })
+
   it('initializes capabilities, listeners, and polling through device.mts', async () => {
     const device = createDevice({
       ipAddress: ' 192.168.1.20 ',
@@ -890,8 +1119,7 @@ describe('ComputerDevice', () => {
     await runScheduledPoll(device)
 
     const pingMissingErrors = device.errorCalls.filter(
-      ([message]) =>
-        message === 'Ping command is not available for fallback status checks'
+      ([message]) => message === 'Ping is unavailable for computer monitoring'
     )
 
     expect(runtime.pingCalls).toEqual([
@@ -1157,6 +1385,23 @@ describe('ComputerDevice', () => {
     expect(runtime.sshEndCount).toBe(1)
   })
 
+  it('sends the sudo password once when SSH prompts on stdout', async () => {
+    const device = createDevice({
+      ipAddress: '192.168.1.20',
+      sshPassword: 'secret',
+      sshUsername: 'admin',
+      targetOs: 'linux',
+    })
+    runtime.sshScenarios = [
+      { stdoutChunks: ['[sudo] password:', '[sudo] password:'] },
+    ]
+
+    await device.shutdownComputer()
+
+    expect(runtime.sshWrites).toEqual(['secret\n'])
+    expect(runtime.sshEndCount).toBe(1)
+  })
+
   it('treats an undefined ssh exit code as success when the channel closes', async () => {
     const device = createDevice({
       ipAddress: '192.168.1.20',
@@ -1316,6 +1561,126 @@ describe('ComputerDevice', () => {
     ])
   })
 
+  it('monitors ICMP without SSH settings and transitions once per observed change', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: '192.168.1.20,192.168.1.21',
+      sshPort: 70000,
+    })
+    runtime.pingOutcomes = [new Error('timeout'), null]
+    await device.onInit()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
+    expect(runtime.tcpCalls).toHaveLength(0)
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    for (let i = 0; i < 2; i++) {
+      runtime.pingOutcomes = [new Error('timeout'), new Error('timeout')]
+      await runScheduledPoll(device)
+    }
+    expect(device.getCapabilityValue('connected')).toBe(false)
+    expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    await runScheduledPoll(device)
+    expect(device.driver.turnedOnTriggerCalls).toEqual([device])
+    await expect(device.shutdownComputer()).rejects.toThrow('SSH port')
+    device.settings.startupMode = 'ssh'
+    await expect(device.startComputer()).rejects.toThrow('SSH port')
+    device.settings.sshPort = 22
+    await expect(device.shutdownComputer()).rejects.toThrow('SSH username')
+    await expect(device.startComputer()).rejects.toThrow('SSH username')
+  })
+
+  for (const code of ['ENOENT', 'EACCES', 'EPERM', 'ENOTSUP']) {
+    it(`retains state and recovers from unavailable ICMP (${code})`, async () => {
+      const device = createDevice({
+        monitoringMethod: 'icmp',
+        ipAddress: '192.168.1.20',
+      })
+      const unavailable = Object.assign(new Error('ping unavailable'), { code })
+      runtime.pingOutcomes = [
+        unavailable,
+        unavailable,
+        null,
+        unavailable,
+        new Error('timeout'),
+      ]
+      await device.onInit()
+      expect(device.capabilitySetCalls).toHaveLength(0)
+      expect(device.warning).toBe('warnings.icmpUnavailable')
+      await runScheduledPoll(device)
+      expect(device.errorCalls).toHaveLength(1)
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(true)
+      expect(device.warning).toBeUndefined()
+      expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+      const uptime = device.getCapabilityValue('uptime')
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(true)
+      expect(device.getCapabilityValue('uptime')).toBe(uptime)
+      expect(device.driver.turnedOffTriggerCalls).toHaveLength(0)
+      await runScheduledPoll(device)
+      expect(device.getCapabilityValue('connected')).toBe(false)
+      expect(device.warning).toBeUndefined()
+      expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    })
+  }
+
+  it('validates ICMP addresses independently and recognizes unsupported ping', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: 'invalid',
+      sshPort: 70000,
+    })
+    await device.onInit()
+    expect(device.warning).toBe('Computer IP must be a valid IPv4 address.')
+    expect(runtime.pingCalls).toHaveLength(0)
+    device.settings.ipAddress = '192.168.1.20'
+    runtime.pingOutcomes = [new Error('ping: protocol not supported')]
+    await device.onSettings({ changedKeys: ['ipAddress'] })
+    expect(device.warning).toBe('warnings.icmpUnavailable')
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    expect(runtime.tcpCalls).toHaveLength(0)
+  })
+
+  it('uses native ICMP when the system ping executable is missing', async () => {
+    const device = createDevice({
+      monitoringMethod: 'icmp',
+      ipAddress: '10.0.1.229',
+    })
+    const missing = Object.assign(new Error('spawn ping ENOENT'), {
+      code: 'ENOENT',
+    })
+    runtime.pingOutcomes = [missing, missing, missing]
+    runtime.nativePingOutcomes = [true, false, true]
+    await device.onInit()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
+    expect(device.driver.turnedOnTriggerCalls).toHaveLength(0)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('connected')).toBe(false)
+    expect(device.driver.turnedOffTriggerCalls).toEqual([device])
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.driver.turnedOnTriggerCalls).toEqual([device])
+    expect(runtime.nativePingCalls).toEqual([
+      '10.0.1.229',
+      '10.0.1.229',
+      '10.0.1.229',
+    ])
+    expect(runtime.tcpCalls).toHaveLength(0)
+    expect(device.errorCalls).toHaveLength(0)
+  })
+
+  it('keeps successful SSH observations when ping is unavailable', async () => {
+    const device = createDevice({ ipAddress: '192.168.1.20' })
+    runtime.pingOutcomes = [
+      Object.assign(new Error('missing'), { code: 'ENOENT' }),
+    ]
+    await device.onInit()
+    expect(runtime.tcpCalls).toHaveLength(1)
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(device.warning).toBeUndefined()
+  })
+
   it('logs lifecycle events and stops polling when the device is removed', async () => {
     const device = createDevice({
       ipAddress: '192.168.1.20',
@@ -1341,4 +1706,346 @@ describe('ComputerDevice', () => {
     ])
     expect(device.homey.intervals.size).toBe(0)
   })
+})
+
+describe('Laptop battery monitoring', () => {
+  async function laptop(targetOs = 'linux') {
+    const device = createDevice({
+      batteryMonitoring: true,
+      targetOs,
+      ipAddress: '192.168.1.20',
+      sshUsername: 'admin',
+      sshPassword: 'secret',
+    })
+    const driver = new ComputerDriver() as unknown as FakeDriver & {
+      onInit(): Promise<void>
+    }
+    await driver.onInit()
+    Object.assign(device.homey, { flow: driver.homey.flow })
+    return { device, driver }
+  }
+
+  it('polls battery telemetry with private-key authentication and no password', async () => {
+    const { device } = await laptop()
+    const { private: privateKey } = sshUtils.generateKeyPairSync('ed25519')
+    device.settings = {
+      ...device.settings,
+      sshPassword: '',
+      sshPrivateKey: privateKey,
+    }
+    runtime.tcpOutcomes = ['connect']
+    runtime.sshScenarios = [{ closeCode: 0, stdoutChunks: ['45|||'] }]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(45)
+    expect(runtime.sshConnectConfigs[0]?.authHandler?.[0]?.type).toBe(
+      'publickey'
+    )
+    expect(runtime.sshConnectConfigs[0]?.password).toBeUndefined()
+    expect(runtime.sshWrites).toEqual([])
+    expect(runtime.sshExecCalls[0]?.options.pty).toBe(false)
+  })
+
+  it('adds optional capability, aggregates capacities and clears failed/offline readings', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'timeout']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['20|20|100|energy\n80|240|300|energy'] },
+      { closeCode: 1 },
+    ]
+    await device.onInit()
+    expect(device.hasCapability('measure_battery')).toBe(true)
+    expect(device.getCapabilityValue('measure_battery')).toBe(65)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.hasCapability('measure_battery')).toBe(true)
+    device.settings = { ...device.settings, batteryMonitoring: false }
+    await device.onSettings({
+      changedKeys: ['batteryMonitoring'],
+      newSettings: device.settings,
+    })
+    expect(device.hasCapability('measure_battery')).toBe(false)
+  })
+
+  it('uses the lowest percentage for charge-only batteries with different voltages', async () => {
+    const { device } = await laptop()
+    const root = mkdtempSync(join(tmpdir(), 'battery-'))
+    try {
+      for (const [name, percent, remaining, full, voltage] of [
+        ['BAT0', 20, 200, 1000, 12000000],
+        ['BAT1', 80, 800, 1000, 6000000],
+      ] as const) {
+        const dir = join(root, name)
+        mkdirSync(dir)
+        for (const [key, value] of Object.entries({
+          type: 'Battery',
+          scope: 'System',
+          capacity: percent,
+          charge_now: remaining,
+          charge_full: full,
+          voltage_now: voltage,
+        }))
+          writeFileSync(join(dir, key), String(value))
+      }
+      runtime.tcpOutcomes = ['connect']
+      runtime.sshScenarios = [
+        {
+          closeCode: 0,
+          execute: command => {
+            const result = Bun.spawnSync([
+              'sh',
+              '-c',
+              command.replace('/sys/class/power_supply', root),
+            ])
+            expect(result.exitCode).toBe(0)
+            return result.stdout.toString()
+          },
+        },
+      ]
+      await device.onInit()
+      expect(device.getCapabilityValue('measure_battery')).toBe(20)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('executes the macOS query against native ioreg output', async () => {
+    const { device } = await laptop('macos')
+    runtime.tcpOutcomes = ['connect']
+    runtime.sshScenarios = [
+      {
+        closeCode: 0,
+        execute: command => {
+          expect(command).toContain('ioreg -r -c AppleSmartBattery')
+          const fixture =
+            '  "CurrentCapacity" = 75\n  "MaxCapacity" = 100\n  "AppleRawCurrentCapacity" = 3000\n  "AppleRawMaxCapacity" = 4000\n'
+          const result = Bun.spawnSync(
+            [
+              'sh',
+              '-c',
+              command.replace('ioreg -r -c AppleSmartBattery', 'cat'),
+            ],
+            { stdin: Buffer.from(fixture) }
+          )
+          expect(result.exitCode).toBe(0)
+          expect(result.stdout.toString()).toBe('75|3000|4000|raw\n')
+          return result.stdout.toString()
+        },
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(75)
+  })
+
+  it('uses the Windows active-system-battery query and its capacity output contract', async () => {
+    const { device } = await laptop('windows')
+    runtime.tcpOutcomes = ['connect']
+    runtime.sshScenarios = [
+      {
+        closeCode: 0,
+        execute: command => {
+          expect(command).toStartWith(
+            'powershell.exe -NoProfile -NonInteractive'
+          )
+          expect(command).toContain(
+            'Get-CimInstance -Namespace root/wmi -ClassName BatteryStatus'
+          )
+          expect(command).toContain('Where-Object Active')
+          expect(command).toContain('BatteryFullChargedCapacity')
+          expect(command).toContain(
+            'Where-Object InstanceName -eq $b.InstanceName'
+          )
+          expect(command).toContain("'{0}|{1}|{2}|mWh' -f")
+          if (process.platform !== 'win32')
+            return '50|10000|20000|mWh\r\n75|60000|80000|mWh\r\n'
+          // Execute the real query in Windows PowerShell, substituting only CIM data.
+          const fixture = `function Get-CimInstance {
+            param($Namespace, $ClassName, $ErrorAction)
+            if ($Namespace -ne 'root/wmi') { throw 'Unexpected namespace' }
+            switch ($ClassName) {
+              BatteryStatus {
+                [pscustomobject]@{ InstanceName='BAT0'; Active=$true; RemainingCapacity=10000 }
+                [pscustomobject]@{ InstanceName='BAT1'; Active=$true; RemainingCapacity=60000 }
+                [pscustomobject]@{ InstanceName='inactive'; Active=$false; RemainingCapacity=0 }
+              }
+              BatteryFullChargedCapacity {
+                [pscustomobject]@{ InstanceName='BAT1'; FullChargedCapacity=80000 }
+                [pscustomobject]@{ InstanceName='BAT0'; FullChargedCapacity=20000 }
+                [pscustomobject]@{ InstanceName='inactive'; FullChargedCapacity=100000 }
+              }
+              default { throw 'Unexpected battery class' }
+            }
+          }; `
+          const script = command.slice(command.indexOf('-Command "') + 10, -1)
+          const result = Bun.spawnSync([
+            'powershell.exe',
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            fixture + script,
+          ])
+          expect(result.exitCode).toBe(0)
+          expect(result.stdout.toString().trim().split(/\r?\n/)).toEqual([
+            '50|10000|20000|mWh',
+            '75|60000|80000|mWh',
+          ])
+          return result.stdout.toString()
+        },
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(70)
+  })
+
+  it('clears battery telemetry when SSH output exceeds its byte limit', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+      {
+        closeCode: 0,
+        stdoutChunks: ['25|||'],
+        stderrChunks: ['x'.repeat(262144)],
+      },
+    ]
+    await device.onInit()
+    expect(device.getCapabilityValue('measure_battery')).toBe(25)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(runtime.sshEndCount).toBe(2)
+  })
+
+  it('clears battery telemetry when the SSH query times out and recovers', async () => {
+    const { device } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'connect']
+    runtime.sshScenarios = [
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+      { keepOpen: true },
+      { closeCode: 0, stdoutChunks: ['25|||'] },
+    ]
+    await device.onInit()
+    const pending = device.onSettings({
+      changedKeys: ['pollIntervalSeconds'],
+      newSettings: device.settings,
+    })
+    await Bun.sleep(0)
+    const timeout = [...sshTimers.values()][0]
+    expect(timeout?.ms).toBe(10000)
+    timeout?.callback()
+    await pending
+    expect(sshTimers.size).toBe(0)
+    expect(device.getCapabilityValue('measure_battery')).toBeNull()
+    expect(device.getCapabilityValue('connected')).toBe(true)
+    expect(runtime.sshEndCount).toBe(2)
+    await runScheduledPoll(device)
+    expect(device.getCapabilityValue('measure_battery')).toBe(25)
+  })
+
+  it('preserves threshold history across unrelated settings saves', async () => {
+    const { device, driver } = await laptop()
+    runtime.tcpOutcomes = ['connect', 'connect', 'connect']
+    runtime.sshScenarios = Array.from({ length: 3 }, () => ({
+      closeCode: 0,
+      stdoutChunks: ['20|||'],
+    }))
+    await device.onInit()
+    const card = driver.homey.flow.getDeviceTriggerCard(
+      'computer_battery_below'
+    )
+    const trigger = card.runListener
+    // Capture the actual previous/current state passed to the Homey card.
+    const states: unknown[] = []
+    Object.assign(card, {
+      trigger: async (_device: unknown, _tokens: unknown, state: unknown) => {
+        states.push(state)
+      },
+    })
+    device.settings = { ...device.settings, macAddress: '11:22:33:44:55:66' }
+    await device.onSettings({
+      changedKeys: ['macAddress'],
+      newSettings: device.settings,
+    })
+    expect(states[0]).toEqual({ value: 20, previous: 20 })
+    expect(await trigger?.({ threshold: 30 }, states[0])).toBe(false)
+    await device.onSettings({
+      changedKeys: ['sshPassword'],
+      newSettings: device.settings,
+    })
+    expect(states[1]).toEqual({ value: 20, previous: null })
+    expect(await trigger?.({ threshold: 30 }, states[1])).toBe(true)
+  })
+
+  it('implements strict independent threshold entries and rejects unknown conditions', async () => {
+    const { device, driver } = await laptop()
+    for (const direction of ['below', 'above']) {
+      const trigger = driver.triggerCards.get(
+        `computer_battery_${direction}`
+      )?.runListener
+      const threshold = direction === 'below' ? 30 : 80
+      const inside = direction === 'below' ? 29 : 81
+      expect(
+        await trigger?.({ threshold }, { value: threshold, previous: null })
+      ).toBe(false)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: threshold })
+      ).toBe(true)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: inside })
+      ).toBe(false)
+      expect(
+        await trigger?.({ threshold }, { value: inside, previous: null })
+      ).toBe(true)
+      expect(
+        await trigger?.(
+          { threshold: direction === 'below' ? 20 : 90 },
+          { value: inside, previous: null }
+        )
+      ).toBe(false)
+      const condition = driver.conditionCards.get(
+        `computer_battery_${direction}`
+      )?.runListener
+      await expect(condition?.({ device, threshold })).rejects.toThrow(
+        'unknown'
+      )
+    }
+  })
+})
+
+it('clears invalid battery output and restores fresh conditions after recovery', async () => {
+  const device = createDevice({
+    batteryMonitoring: true,
+    ipAddress: '192.168.1.20',
+    sshUsername: 'admin',
+    sshPassword: 'secret',
+  })
+  const driver = new ComputerDriver() as unknown as FakeDriver & {
+    onInit(): Promise<void>
+  }
+  await driver.onInit()
+  Object.assign(device.homey, { flow: driver.homey.flow })
+  runtime.tcpOutcomes = ['connect', 'connect', 'connect', 'connect']
+  runtime.sshScenarios = [
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+    { closeCode: 0, stdoutChunks: ['Infinity|||\n-1|||\n101|||\n|||'] },
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+    { closeCode: 0, stdoutChunks: ['25|||'] },
+  ]
+  await device.onInit()
+  const condition = driver.conditionCards.get(
+    'computer_battery_below'
+  )?.runListener
+  expect(await condition?.({ device, threshold: 30 })).toBe(true)
+  expect(await condition?.({ device, threshold: 25 })).toBe(false)
+  await runScheduledPoll(device)
+  expect(device.getCapabilityValue('measure_battery')).toBeNull()
+  await expect(condition?.({ device, threshold: 30 })).rejects.toThrow(
+    'unknown'
+  )
+  await runScheduledPoll(device)
+  expect(await condition?.({ device, threshold: 30 })).toBe(true)
+  await runScheduledPoll(device)
+  expect(device.getCapabilityValue('measure_battery')).toBe(25)
 })
