@@ -1,4 +1,8 @@
 {
+  "1.0.4": {
+    "en": "Added a bug report link to the app listing and shortened the author name to Ole.",
+    "no": "La til en lenke for feilrapporter i appoversikten og forkortet forfatternavnet til Ole."
+  },
   "1.0.3": {
     "en": "Fixed mobile app and capability icons, updated the app icon color, and added SSH private-key authentication with command timeouts, optional laptop battery monitoring with threshold Flows and diagnostics, and optional ICMP-only monitoring with native ping fallback and recovery warnings.",
     "no": "Rettet app- og kapabilitetsikoner, oppdaterte appikonfargen og la til SSH-nøkkelinnlogging med kommandotidsavbrudd, valgfri batteriovervåking med terskelkort i Flow og diagnostikk, og valgfri ICMP-overvåking med innebygd ping-reserve og varsling ved overvåkingsfeil."
