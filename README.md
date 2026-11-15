@@ -4,11 +4,15 @@ Wake, monitor, and power down your computer from Homey.
 
 ## Features
 
-- Start a computer with Wake-on-LAN.
-- Monitor whether the computer is reachable from Homey.
-- Shut down the computer over SSH.
-- Create Flows that start or shut down selected computers.
-- Add multiple computers, each with their own network and SSH settings.
+- Start a computer with Wake-on-LAN, or over SSH with an optional custom power-on command.
+- Shut down the computer over SSH, with an optional custom shutdown command.
+- Monitor whether the computer is reachable, using SSH, ping (ICMP), or both.
+- Show power state and uptime as device capabilities.
+- Monitor laptop battery level, with Flows that trigger on configurable thresholds.
+- Authenticate SSH with a password or a private key, including encrypted keys.
+- Create Flows that start, shut down, or check selected computers.
+- Add multiple computers, each with their own IP, MAC, and SSH settings. Comma-separated IP and MAC lists are supported.
+- Available in English and Norwegian.
 
 # Setup
 
