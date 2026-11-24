@@ -1,7 +1,7 @@
 {
   "1.0.4": {
-    "en": "Fixed app crashes when an SSH connection failed and the computer then reset the connection, added a bug report link to the app listing, and shortened the author name to Ole.",
-    "no": "Rettet krasj i appen når en SSH-tilkobling feilet og datamaskinen deretter brøt forbindelsen, la til en lenke for feilrapporter i appoversikten og forkortet forfatternavnet til Ole."
+    "en": "Fixed app crashes when an SSH connection failed and the computer then reset the connection, restored the black line-art app icon, added a bug report link to the app listing, and shortened the author name to Ole.",
+    "no": "Rettet krasj i appen når en SSH-tilkobling feilet og datamaskinen deretter brøt forbindelsen, gjeninnførte det svarte strekikonet, la til en lenke for feilrapporter i appoversikten og forkortet forfatternavnet til Ole."
   },
   "1.0.3": {
     "en": "Fixed mobile app and capability icons, updated the app icon color, and added SSH private-key authentication with command timeouts, optional laptop battery monitoring with threshold Flows and diagnostics, and optional ICMP-only monitoring with native ping fallback and recovery warnings.",
